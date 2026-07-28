@@ -33,12 +33,21 @@ python3 -m http.server 8000
 
 ## Deploy to GitHub Pages
 
-1. Push this repo to GitHub.
-2. **Settings → Pages → Build and deployment → Source: Deploy from a branch.**
-3. Pick the branch and the `/ (root)` folder, then save.
-4. Your tank goes live at `https://<user>.github.io/<repo>/`.
+A deploy workflow is already included at `.github/workflows/pages.yml`. The
+**one-time** step (GitHub won't let automation enable Pages for you the first
+time) is to turn Pages on:
 
-The included `.nojekyll` file makes Pages serve everything as-is.
+1. Go to **Settings → Pages → Build and deployment**.
+2. Set **Source** to **GitHub Actions**.
+
+That's it. From then on every push to `main` or the game branch auto-builds and
+publishes; you can also trigger it manually from the **Actions** tab
+("Deploy to GitHub Pages" → *Run workflow*). The site goes live at
+`https://sarwesv.github.io/fishsim/`.
+
+Prefer no Actions at all? Instead set **Source → Deploy from a branch**, pick the
+branch and the `/ (root)` folder — the static site is served directly. The
+included `.nojekyll` file makes Pages serve everything as-is either way.
 
 ## Project layout
 
