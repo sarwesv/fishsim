@@ -16,14 +16,21 @@
         <h1 class="game-title">FISH<br />TANK</h1>
         <p class="subtitle">build your aquarium</p>
 
+        <h2 class="section-label">Water</h2>
+        <div id="water-select" class="segmented">
+          <button data-water="fresh" class="seg">Freshwater</button>
+          <button data-water="salt" class="seg">Saltwater</button>
+        </div>
+
         <h2 class="section-label">Starting lineup</h2>
         <div id="lineup" class="lineup"></div>
+        <button id="browse-btn" class="wide-btn">+ Browse library</button>
 
         <h2 class="section-label">Gravel</h2>
         <div id="title-gravel" class="swatches"></div>
 
         <button id="start-btn" class="start-btn">START</button>
-        <p class="hint">move your cursor or finger in the water and a curious koi may swim over</p>
+        <p class="hint">move your cursor or finger in the water and a curious fish may swim over</p>
       </div>
     </section>
 
@@ -34,21 +41,36 @@
       </div>
       <div id="toolbar">
         <div class="tool-group">
-          <span class="group-label">Add</span>
-          <div id="spawn-row" class="spawn-row"></div>
-        </div>
-        <div class="tool-group">
-          <button id="delete-btn" class="tool danger" title="Delete selected">DEL</button>
+          <button id="add-btn" class="tool">+ ADD</button>
+          <button id="delete-btn" class="tool danger">DEL</button>
         </div>
         <div class="tool-group grow">
           <span class="group-label">Gravel</span>
           <div id="tank-gravel" class="swatches small"></div>
         </div>
         <div class="tool-group">
-          <button id="menu-btn" class="tool" title="Back to menu">MENU</button>
+          <span id="cap" class="cap" title="fish / max"></span>
+          <button id="menu-btn" class="tool">MENU</button>
         </div>
       </div>
     </section>
+
+    <!-- ===== Library overlay ===== -->
+    <div id="library" class="overlay hidden">
+      <div class="lib-panel">
+        <div class="lib-head">
+          <input id="lib-search" class="lib-search" placeholder="SEARCH..." autocomplete="off" />
+          <div id="lib-tabs" class="lib-tabs">
+            <button data-water="fresh" class="seg">Fresh</button>
+            <button data-water="salt" class="seg">Salt</button>
+          </div>
+          <button id="lib-close" class="tool" title="Close">X</button>
+        </div>
+        <div id="lib-grid" class="lib-grid"></div>
+      </div>
+    </div>
+
+    <div id="toast" class="toast hidden"></div>
   </div>
 
   <script src="js/vendor/gsap.min.js"></script>
@@ -57,6 +79,7 @@
   <script src="js/fish.js"></script>
   <script src="js/koi.js"></script>
   <script src="js/plants.js"></script>
+  <script src="js/catalog.js"></script>
   <script src="js/tank.js"></script>
   <script src="js/main.js"></script>
 </body>

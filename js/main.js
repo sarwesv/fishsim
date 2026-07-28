@@ -1,31 +1,20 @@
-// main.js — app state + UI wiring. Title screen lets you pick a starting
-// lineup and gravel color; the tank view has a live toolbar to spawn,
-// select+delete, and recolor the gravel.
-
-const CREATURES = [
-  { type: 'koi', label: 'Koi' },
-  { type: 'tetra', label: 'Tetra' },
-  { type: 'goldfish', label: 'Goldfish' },
-  { type: 'angelfish', label: 'Angelfish' },
-  { type: 'betta', label: 'Betta' },
-  { type: 'guppy', label: 'Guppy' },
-  { type: 'shrimp', label: 'Shrimp' },
-  { type: 'snail', label: 'Snail' },
-  { type: 'crab', label: 'Crab' },
-  { type: 'plant', label: 'Plant' },
-];
+// main.js — app state + UI: title screen (water type + starting lineup),
+// a searchable species library shared by the title and tank, the tank
+// toolbar, crowding cap indicator, and toasts.
 
 let tank;
-const startCounts = {
-  koi: 2, tetra: 3, goldfish: 1, angelfish: 1, betta: 0, guppy: 2,
-  shrimp: 1, snail: 1, crab: 0, plant: 2,
-};
+let selectedWater = 'fresh';   // title choice
+let libContext = 'title';      // 'title' | 'tank'
+let libWater = 'fresh';        // which tab the library is showing
+const startCounts = {};        // type -> starting count
+
+const FRESH_DEFAULTS = { koi: 2, tetra: 4, guppy: 2, goldfish: 1, shrimp: 1, snail: 1, plant: 2 };
+const SALT_DEFAULTS = { clownfish: 3, blue_tang: 1, damsel: 2, shrimp: 1, snail: 1, plant: 1 };
 
 function $(id) { return document.getElementById(id); }
+function labelOf(type) { return (SPECIES_BY_TYPE[type] || {}).label || type; }
 
-// Render a real creature sprite onto a small canvas so the UI icons are the
-// same pixel art as the tank (no emoji — those aren't 8-bit). CSS upscales
-// them with image-rendering: pixelated.
+// ---------- pixel sprite icons ----------
 function makeSpriteIcon(type) {
   const W = 40, H = 28;
   const cvs = document.createElement('canvas');
@@ -35,11 +24,13 @@ function makeSpriteIcon(type) {
   ctx.imageSmoothingEnabled = false;
   const cx = W / 2, cy = H / 2;
   let c;
-  if (type === 'koi') { c = new Koi(cx, cy); }
-  else if (FISH_SPECIES[type]) { c = new FinFish(type, cx, cy); }
-  else if (type === 'shrimp') { c = new Shrimp(cx, cy); }
-  else if (type === 'snail') { c = new Snail(cx, cy + 3, cy + 3); }
-  else if (type === 'crab') { c = new Crab(cx, cy + 4, cy + 4); }
+  if (type === 'koi') c = new Koi(cx, cy);
+  else if (FISH_SPECIES[type]) c = new FinFish(type, cx, cy);
+  else if (type === 'shrimp') c = new Shrimp(cx, cy);
+  else if (type === 'snail') c = new Snail(cx, cy + 3, cy + 3);
+  else if (type === 'crab') c = new Crab(cx, cy + 4, cy + 4);
+  else if (type === 'lobster') c = new Lobster(cx, cy + 2, cy + 2);
+  else if (type === 'octopus') c = new Octopus(cx, cy - 2);
   else if (type === 'plant') { c = new Plant(cx, H - 1); c.height = 0.82; }
   c.dir = 1; c.animT = 0;
   if (c.isFish) {
@@ -52,6 +43,14 @@ function makeSpriteIcon(type) {
   return cvs;
 }
 
+function waterBadge(water) {
+  const b = document.createElement('span');
+  b.className = `badge badge-${water}`;
+  b.textContent = water === 'both' ? 'BOTH' : water === 'salt' ? 'SALT' : 'FRESH';
+  return b;
+}
+
+// ---------- gravel swatches ----------
 function buildGravelSwatches(container, onPick) {
   container.innerHTML = '';
   GRAVEL_COLORS.forEach((col) => {
@@ -69,37 +68,150 @@ function buildGravelSwatches(container, onPick) {
   container.firstChild.classList.add('sel');
 }
 
-// ---------- Title screen ----------
-function buildTitle() {
-  const lineup = $('lineup');
-  lineup.innerHTML = '';
-  CREATURES.forEach((c) => {
-    const wrap = document.createElement('div');
-    wrap.className = 'pick';
-    wrap.innerHTML =
-      `<div class="pick-icon"></div>` +
-      `<div class="pick-label">${c.label}</div>` +
-      `<div class="stepper">` +
-      `<button class="minus" aria-label="fewer ${c.label}">-</button>` +
-      `<span class="count" id="cnt-${c.type}">${startCounts[c.type]}</span>` +
-      `<button class="plus" aria-label="more ${c.label}">+</button></div>`;
-    wrap.querySelector('.pick-icon').appendChild(makeSpriteIcon(c.type));
-    wrap.querySelector('.plus').addEventListener('click', () => {
-      startCounts[c.type] = Math.min(30, startCounts[c.type] + 1);
-      $(`cnt-${c.type}`).textContent = startCounts[c.type];
-    });
-    wrap.querySelector('.minus').addEventListener('click', () => {
-      startCounts[c.type] = Math.max(0, startCounts[c.type] - 1);
-      $(`cnt-${c.type}`).textContent = startCounts[c.type];
-    });
-    lineup.appendChild(wrap);
-  });
-
-  buildGravelSwatches($('title-gravel'), (col) => { tank.gravelColor = col; });
+// ---------- title: water + lineup ----------
+function setTitleWater(w) {
+  selectedWater = w; libWater = w;
+  [...$('water-select').children].forEach((b) => b.classList.toggle('sel', b.dataset.water === w));
+  // reset the starting lineup to that water's defaults
+  for (const k of Object.keys(startCounts)) delete startCounts[k];
+  Object.assign(startCounts, w === 'fresh' ? FRESH_DEFAULTS : SALT_DEFAULTS);
+  renderLineup();
+  if (!$('library').classList.contains('hidden')) renderLibrary();
 }
 
-// GSAP cross-fade between the two screens; onMid runs while the incoming
-// screen is laid out but before it fades in.
+function adjustCount(type, delta) {
+  const next = Math.max(0, Math.min(30, (startCounts[type] || 0) + delta));
+  if (next === 0) delete startCounts[type]; else startCounts[type] = next;
+  renderLineup();
+  if (!$('library').classList.contains('hidden')) renderLibrary();
+}
+
+function stepperEl(type) {
+  const wrap = document.createElement('div');
+  wrap.className = 'stepper';
+  const minus = document.createElement('button'); minus.className = 'minus'; minus.textContent = '-';
+  const count = document.createElement('span'); count.className = 'count'; count.textContent = startCounts[type] || 0;
+  const plus = document.createElement('button'); plus.className = 'plus'; plus.textContent = '+';
+  minus.addEventListener('click', (e) => { e.stopPropagation(); adjustCount(type, -1); });
+  plus.addEventListener('click', (e) => { e.stopPropagation(); adjustCount(type, +1); });
+  wrap.append(minus, count, plus);
+  return wrap;
+}
+
+function renderLineup() {
+  const lineup = $('lineup');
+  lineup.innerHTML = '';
+  const chosen = Object.keys(startCounts).filter((t) => startCounts[t] > 0);
+  if (chosen.length === 0) {
+    const p = document.createElement('p');
+    p.className = 'empty-note';
+    p.textContent = 'no fish yet — browse the library';
+    lineup.appendChild(p);
+    return;
+  }
+  chosen.forEach((type) => {
+    const card = document.createElement('div');
+    card.className = 'pick';
+    const icon = document.createElement('div'); icon.className = 'pick-icon';
+    icon.appendChild(makeSpriteIcon(type));
+    const label = document.createElement('div'); label.className = 'pick-label'; label.textContent = labelOf(type);
+    card.append(icon, label, stepperEl(type));
+    lineup.appendChild(card);
+  });
+}
+
+// ---------- library overlay ----------
+function openLibrary(context) {
+  libContext = context;
+  if (context === 'tank') libWater = tank.waterType || libWater;
+  else libWater = selectedWater;
+  $('lib-search').value = '';
+  $('library').classList.remove('hidden');
+  gsap.fromTo('#library .lib-panel', { y: 20, autoAlpha: 0 }, { y: 0, autoAlpha: 1, duration: 0.25 });
+  renderLibrary();
+  $('lib-search').focus();
+}
+
+function closeLibrary() {
+  $('library').classList.add('hidden');
+}
+
+function libLocked() {
+  // in the tank, the water tabs lock to whatever the tank already contains
+  return libContext === 'tank' && !!tank.waterType;
+}
+
+function renderLibrary() {
+  // tab state
+  const tabs = $('lib-tabs');
+  [...tabs.children].forEach((b) => {
+    b.classList.toggle('sel', b.dataset.water === libWater);
+    b.disabled = libLocked() && b.dataset.water !== libWater;
+  });
+
+  const q = $('lib-search').value.trim().toLowerCase();
+  const grid = $('lib-grid');
+  grid.innerHTML = '';
+  const list = speciesForWater(libWater).filter((s) => s.label.toLowerCase().includes(q));
+  if (list.length === 0) {
+    grid.innerHTML = '<p class="empty-note">no matches</p>';
+    return;
+  }
+  list.forEach((s) => {
+    const card = document.createElement('div');
+    card.className = 'lib-card';
+    const icon = document.createElement('div'); icon.className = 'lib-icon';
+    icon.appendChild(makeSpriteIcon(s.type));
+    const name = document.createElement('div'); name.className = 'lib-name'; name.textContent = s.label;
+    const badge = waterBadge(s.water);
+    card.append(icon, name, badge);
+
+    if (libContext === 'title') {
+      card.appendChild(stepperEl(s.type));
+      card.classList.toggle('active', (startCounts[s.type] || 0) > 0);
+    } else {
+      const inTank = tank.creatures.filter((c) => c.type === s.type).length +
+        (s.type === 'plant' ? tank.plants.length : 0);
+      const add = document.createElement('button');
+      add.className = 'lib-add';
+      add.textContent = inTank ? `+ ADD (${inTank})` : '+ ADD';
+      add.addEventListener('click', () => addFromLibrary(s.type));
+      card.appendChild(add);
+    }
+    grid.appendChild(card);
+  });
+}
+
+function addFromLibrary(type) {
+  const r = tank.trySpawn(type);
+  if (!r.ok) {
+    toast(r.reason === 'full' ? 'TANK IS FULL' : 'WRONG WATER TYPE');
+    return;
+  }
+  updateCap();
+  renderLibrary(); // refresh counts / lock the water tabs after the first typed fish
+}
+
+// ---------- toast ----------
+let toastTween;
+function toast(msg) {
+  const el = $('toast');
+  el.textContent = msg;
+  el.classList.remove('hidden');
+  if (toastTween) toastTween.kill();
+  gsap.killTweensOf(el);
+  toastTween = gsap.fromTo(el, { autoAlpha: 0, y: 8 },
+    { autoAlpha: 1, y: 0, duration: 0.2, onComplete: () => {
+      gsap.to(el, { autoAlpha: 0, delay: 1.3, duration: 0.4, onComplete: () => el.classList.add('hidden') });
+    } });
+}
+
+function updateCap() {
+  const el = $('cap');
+  if (el) el.textContent = `${tank.creatures.length}/${tank.maxCreatures}`;
+}
+
+// ---------- screens ----------
 function transition(fromId, toId, onMid) {
   const from = $(fromId), to = $(toId);
   gsap.to(from, {
@@ -115,69 +227,77 @@ function transition(fromId, toId, onMid) {
 }
 
 function startGame() {
+  closeLibrary();
   transition('title-screen', 'tank-screen', () => {
     tank.clear();
+    tank.waterType = selectedWater;
     tank.resize();
-    CREATURES.forEach((c) => {
-      for (let i = 0; i < startCounts[c.type]; i++) tank.spawn(c.type);
+    Object.keys(startCounts).forEach((type) => {
+      for (let i = 0; i < startCounts[type]; i++) tank.trySpawn(type);
     });
     if (tank.creatures.length === 0 && tank.plants.length === 0) {
-      tank.spawn('koi'); tank.spawn('koi');
+      tank.trySpawn(selectedWater === 'fresh' ? 'koi' : 'clownfish');
+      tank.trySpawn(selectedWater === 'fresh' ? 'tetra' : 'damsel');
     }
+    updateCap();
     tank.start();
   });
 }
 
-// ---------- Tank toolbar ----------
-function buildToolbar() {
-  const spawnRow = $('spawn-row');
-  spawnRow.innerHTML = '';
-  CREATURES.forEach((c) => {
-    const b = document.createElement('button');
-    b.className = 'tool tool-icon';
-    b.appendChild(makeSpriteIcon(c.type));
-    b.title = `Add ${c.label}`;
-    b.addEventListener('click', () => tank.spawn(c.type));
-    spawnRow.appendChild(b);
-  });
-
-  buildGravelSwatches($('tank-gravel'), (col) => { tank.gravelColor = col; });
-
-  const del = $('delete-btn');
-  del.addEventListener('click', () => tank.deleteSelected());
-  del.disabled = true;
-
-  tank.onSelect = (obj) => { del.disabled = !obj; };
-
-  $('menu-btn').addEventListener('click', () => {
-    transition('tank-screen', 'title-screen', () => tank.stop());
-  });
-}
-
-// GSAP entrance for the title screen
-function animateTitleIn() {
-  const tl = gsap.timeline();
-  tl.from('.game-title', { y: -34, autoAlpha: 0, duration: 0.6, ease: 'back.out(1.7)' })
-    .from('.subtitle', { autoAlpha: 0, duration: 0.4 }, '-=0.2')
-    .from('.section-label', { autoAlpha: 0, x: -12, duration: 0.3, stagger: 0.1 }, '-=0.1')
-    .from('#lineup .pick', { y: 20, autoAlpha: 0, duration: 0.4, stagger: 0.06 }, '-=0.2')
-    .from('#title-gravel .swatch', { scale: 0, duration: 0.3, stagger: 0.03, ease: 'back.out(2)' }, '-=0.2')
-    .from('.start-btn', { scale: 0, autoAlpha: 0, duration: 0.5, ease: 'back.out(2)' }, '-=0.1')
-    .from('.hint', { autoAlpha: 0, duration: 0.4 }, '-=0.2');
-}
-
+// ---------- init ----------
 function init() {
   tank = new Tank($('tank'));
-  buildTitle();
-  buildToolbar();
+  tank.onSelect = (obj) => { $('delete-btn').disabled = !obj; };
+  tank.onChange = updateCap;
+
+  // water selector
+  $('water-select').querySelectorAll('button').forEach((b) => {
+    b.addEventListener('click', () => setTitleWater(b.dataset.water));
+  });
+  setTitleWater('fresh');
+
+  buildGravelSwatches($('title-gravel'), (col) => { tank.gravelColor = col; });
+  buildGravelSwatches($('tank-gravel'), (col) => { tank.gravelColor = col; });
+
+  $('browse-btn').addEventListener('click', () => openLibrary('title'));
   $('start-btn').addEventListener('click', startGame);
+  $('add-btn').addEventListener('click', () => openLibrary('tank'));
+  $('delete-btn').addEventListener('click', () => { tank.deleteSelected(); });
+  $('delete-btn').disabled = true;
+  $('menu-btn').addEventListener('click', () => {
+    closeLibrary();
+    transition('tank-screen', 'title-screen', () => tank.stop());
+  });
+
+  // library controls
+  $('lib-close').addEventListener('click', closeLibrary);
+  $('lib-search').addEventListener('input', renderLibrary);
+  $('lib-tabs').querySelectorAll('button').forEach((b) => {
+    b.addEventListener('click', () => {
+      if (libLocked()) return;
+      if (libContext === 'title') setTitleWater(b.dataset.water);
+      else { libWater = b.dataset.water; renderLibrary(); }
+    });
+  });
+  $('library').addEventListener('click', (e) => { if (e.target.id === 'library') closeLibrary(); });
+
   animateTitleIn();
 
   let rT;
   window.addEventListener('resize', () => {
     clearTimeout(rT);
-    rT = setTimeout(() => tank.resize(), 120);
+    rT = setTimeout(() => { tank.resize(); updateCap(); }, 120);
   });
+}
+
+function animateTitleIn() {
+  const tl = gsap.timeline();
+  tl.from('.game-title', { y: -34, autoAlpha: 0, duration: 0.6, ease: 'back.out(1.7)' })
+    .from('.subtitle', { autoAlpha: 0, duration: 0.4 }, '-=0.2')
+    .from('#water-select', { autoAlpha: 0, y: 10, duration: 0.3 }, '-=0.1')
+    .from('#lineup .pick', { y: 20, autoAlpha: 0, duration: 0.4, stagger: 0.05 }, '-=0.1')
+    .from('#browse-btn', { autoAlpha: 0, duration: 0.3 }, '-=0.1')
+    .from('.start-btn', { scale: 0, autoAlpha: 0, duration: 0.5, ease: 'back.out(2)' }, '-=0.1');
 }
 
 window.addEventListener('DOMContentLoaded', init);

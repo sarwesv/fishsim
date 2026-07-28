@@ -22,6 +22,9 @@ class Tank {
     this.pointer = { x: 0, y: 0, active: false };
     this.curiosityT = rand(3, 7);
 
+    this.waterType = null;      // 'fresh' | 'salt' | null (set by inhabitants)
+    this.maxCreatures = 30;     // recomputed on resize from tank size
+
     this.W = 320; this.H = TARGET_H;
     this.waterTop = 0; this.gravelTop = 0; this.wallL = 4; this.wallR = 316;
 
@@ -59,6 +62,10 @@ class Tank {
     }
     for (const p of this.plants) p.floorY = this.gravelTop;
 
+    // crowding cap scales with the tank's swimmable area
+    const area = this.W * (this.gravelTop - this.waterTop);
+    this.maxCreatures = Math.max(8, Math.min(60, Math.round(area / 750)));
+
     this._buildPebbles();
   }
 
@@ -81,6 +88,34 @@ class Tank {
   }
 
   // ---- population ----
+
+  // Is a species allowed right now? Returns { ok } or { ok:false, reason }.
+  canSpawn(type) {
+    const meta = SPECIES_BY_TYPE[type];
+    if (meta && meta.water !== 'both' && this.waterType && this.waterType !== meta.water) {
+      return { ok: false, reason: 'water' };
+    }
+    if (type !== 'plant' && this.creatures.length >= this.maxCreatures) {
+      return { ok: false, reason: 'full' };
+    }
+    return { ok: true };
+  }
+
+  // Spawn if allowed, applying water-type + crowding rules.
+  trySpawn(type) {
+    const check = this.canSpawn(type);
+    if (!check.ok) return check;
+    const meta = SPECIES_BY_TYPE[type];
+    if (meta && meta.water !== 'both' && !this.waterType) this.waterType = meta.water;
+    return { ok: true, creature: this.spawn(type) };
+  }
+
+  // The tank's water type is whatever its typed (non-'both') inhabitants are.
+  refreshWaterType() {
+    const typed = this.creatures.find((c) => c.water && c.water !== 'both');
+    this.waterType = typed ? typed.water : null;
+  }
+
   spawn(type) {
     let c;
     const x = rand(this.wallL + 10, this.wallR - 10);
@@ -89,12 +124,17 @@ class Tank {
     else if (type === 'shrimp') c = new Shrimp(x, rand(this.H * 0.4, this.gravelTop - 8));
     else if (type === 'snail') c = new Snail(x, 0, this.gravelTop);
     else if (type === 'crab') c = new Crab(x, 0, this.gravelTop);
+    else if (type === 'lobster') c = new Lobster(x, 0, this.gravelTop);
+    else if (type === 'octopus') c = new Octopus(x, rand(this.H * 0.55, this.gravelTop - 10));
     else if (type === 'plant') { c = new Plant(x, this.gravelTop); this.plants.push(c); }
     if (c) {
+      const meta = SPECIES_BY_TYPE[type];
+      c.water = meta ? meta.water : 'both';
       if (c.type !== 'plant') this.creatures.push(c);
       // GSAP spawn pop-in
       c.scale = 0;
       gsap.to(c, { scale: 1, duration: 0.5, ease: 'back.out(2.2)' });
+      if (this.onChange) this.onChange();
     }
     return c;
   }
@@ -116,6 +156,8 @@ class Tank {
       onComplete: () => {
         this.creatures = this.creatures.filter((c) => c !== t);
         this.plants = this.plants.filter((p) => p !== t);
+        this.refreshWaterType();
+        if (this.onSelect) this.onSelect(null);
       },
     });
   }
@@ -290,6 +332,7 @@ class Tank {
 
   clear() {
     this.creatures = []; this.plants = []; this.bubbles = [];
+    this.waterType = null;
     this._select(null);
   }
 }

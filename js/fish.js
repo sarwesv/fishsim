@@ -98,11 +98,16 @@ function patternColorAt(cfg, x, patY) {
     return c;
   }
   const stripeGap = Math.max(3, Math.round(bw / 4));
+  const b = x / bw;
   switch (cfg.pattern) {
     case 'belly': return patY - mid > bh * 0.08 ? cfg.accent : cfg.base;
     case 'stripes': return x % stripeGap < 2 ? cfg.accent : cfg.base;
     case 'rear': return x < bw * 0.42 ? cfg.accent : cfg.base;
+    case 'front': return x > bw * 0.55 ? cfg.accent : cfg.base;
+    case 'top': return patY < mid - bh * 0.05 ? cfg.accent : cfg.base;
     case 'spot': return Math.hypot(x - bw * 0.3, patY - mid) <= bh * 0.26 ? cfg.accent : cfg.base;
+    case 'bands':
+      return ((b > 0.16 && b < 0.28) || (b > 0.46 && b < 0.58) || (b > 0.78 && b < 0.88)) ? cfg.accent : cfg.base;
     default: return cfg.base;
   }
 }
@@ -189,35 +194,123 @@ function buildFishGraphics(cfg) {
   return { body: buildDetailedFish(cfg), tail: buildTail(cfg) };
 }
 
+// Every fish species. `water` is 'fresh' or 'salt' (the tank won't mix them).
 const FISH_SPECIES = {
+  // ---------- freshwater ----------
   tetra: {
-    label: 'Tetra', minLen: 12, maxLen: 16, bhRatio: 0.5,
+    label: 'Neon Tetra', water: 'fresh', minLen: 12, maxLen: 16, bhRatio: 0.5,
     base: ['#5fc7e0', '#4fb0d8', '#6ad0c0'], accent: '#e8433f', pattern: 'rear',
     tailLen: 0.3, tailH: 0.6, dorsal: 0.28, ventral: 0.22,
     finColor: 'light', tailColor: 'light', speedMin: 26, speedMax: 40,
   },
   goldfish: {
-    label: 'Goldfish', minLen: 16, maxLen: 20, bhRatio: 0.62,
+    label: 'Goldfish', water: 'fresh', minLen: 16, maxLen: 20, bhRatio: 0.62,
     base: '#ff8a3d', accent: '#ffd23f', pattern: 'belly',
     tailLen: 0.45, tailH: 1.0, dorsal: 0.42, ventral: 0.28,
     finColor: 'light', tailColor: 'base', speedMin: 18, speedMax: 26,
   },
   angelfish: {
-    label: 'Angelfish', minLen: 15, maxLen: 19, bhRatio: 0.95,
+    label: 'Angelfish', water: 'fresh', minLen: 15, maxLen: 19, bhRatio: 0.95,
     base: ['#f2f2f2', '#ffd23f', '#f0c27a'], accent: '#2b2b2b', pattern: 'stripes',
     tailLen: 0.34, tailH: 0.8, dorsal: 0.9, ventral: 0.9,
     finColor: 'light', tailColor: 'light', speedMin: 15, speedMax: 23,
   },
   betta: {
-    label: 'Betta', minLen: 13, maxLen: 17, bhRatio: 0.6,
+    label: 'Betta', water: 'fresh', minLen: 13, maxLen: 17, bhRatio: 0.6,
     base: ['#c0392b', '#7d3cc0', '#2670c0', '#c0398f'], accent: 'shade', pattern: 'solid',
     tailLen: 0.62, tailH: 1.15, dorsal: 0.6, ventral: 0.6,
     finColor: 'light', tailColor: 'base', speedMin: 15, speedMax: 23,
   },
   guppy: {
-    label: 'Guppy', minLen: 10, maxLen: 14, bhRatio: 0.55,
+    label: 'Guppy', water: 'fresh', minLen: 10, maxLen: 14, bhRatio: 0.55,
     base: ['#ffd23f', '#ff7bd0', '#7bffb0', '#ff9e3d', '#8ad0ff'], accent: 'shade', pattern: 'spot',
     tailLen: 0.55, tailH: 1.0, dorsal: 0.3, ventral: 0.24,
+    finColor: 'light', tailColor: 'base', speedMin: 24, speedMax: 34,
+  },
+  discus: {
+    label: 'Discus', water: 'fresh', minLen: 16, maxLen: 20, bhRatio: 0.98,
+    base: ['#e8622a', '#3aa0c0', '#d0a23a'], accent: 'shade', pattern: 'stripes',
+    tailLen: 0.3, tailH: 0.55, dorsal: 0.5, ventral: 0.5,
+    finColor: 'light', tailColor: 'base', speedMin: 14, speedMax: 20,
+  },
+  molly: {
+    label: 'Molly', water: 'fresh', minLen: 12, maxLen: 16, bhRatio: 0.56,
+    base: ['#2b2b2b', '#d0d0d0', '#f0b03a'], accent: 'shade', pattern: 'solid',
+    tailLen: 0.4, tailH: 0.8, dorsal: 0.3, ventral: 0.2,
+    finColor: 'light', tailColor: 'base', speedMin: 18, speedMax: 26,
+  },
+  barb: {
+    label: 'Tiger Barb', water: 'fresh', minLen: 13, maxLen: 17, bhRatio: 0.62,
+    base: '#e8a53a', accent: '#2b2b2b', pattern: 'stripes',
+    tailLen: 0.38, tailH: 0.8, dorsal: 0.3, ventral: 0.22,
+    finColor: '#e8622a', tailColor: '#e8622a', speedMin: 22, speedMax: 32,
+  },
+  gourami: {
+    label: 'Gourami', water: 'fresh', minLen: 15, maxLen: 19, bhRatio: 0.64,
+    base: ['#6fb0d0', '#c0a0d0', '#e0b060'], accent: 'light', pattern: 'spot',
+    tailLen: 0.4, tailH: 0.85, dorsal: 0.35, ventral: 0.3,
+    finColor: 'light', tailColor: 'base', speedMin: 16, speedMax: 24,
+  },
+  platy: {
+    label: 'Platy', water: 'fresh', minLen: 11, maxLen: 14, bhRatio: 0.58,
+    base: ['#ff6a3d', '#ffb03d', '#e8433f'], accent: 'shade', pattern: 'solid',
+    tailLen: 0.36, tailH: 0.75, dorsal: 0.28, ventral: 0.2,
+    finColor: 'light', tailColor: 'base', speedMin: 20, speedMax: 30,
+  },
+
+  // ---------- saltwater ----------
+  clownfish: {
+    label: 'Clownfish', water: 'salt', minLen: 13, maxLen: 17, bhRatio: 0.6,
+    base: '#ff7b3d', accent: '#f6f2e9', pattern: 'bands',
+    tailLen: 0.36, tailH: 0.8, dorsal: 0.32, ventral: 0.24,
+    finColor: '#ff7b3d', tailColor: '#ff7b3d', speedMin: 18, speedMax: 26,
+  },
+  blue_tang: {
+    label: 'Blue Tang', water: 'salt', minLen: 15, maxLen: 19, bhRatio: 0.68,
+    base: '#2a6fd0', accent: '#141b26', pattern: 'top',
+    tailLen: 0.36, tailH: 0.8, dorsal: 0.4, ventral: 0.3,
+    finColor: '#2a6fd0', tailColor: '#ffd23f', speedMin: 18, speedMax: 26,
+  },
+  yellow_tang: {
+    label: 'Yellow Tang', water: 'salt', minLen: 15, maxLen: 19, bhRatio: 0.85,
+    base: '#ffd23f', accent: 'shade', pattern: 'solid',
+    tailLen: 0.34, tailH: 0.7, dorsal: 0.55, ventral: 0.55,
+    finColor: 'light', tailColor: 'base', speedMin: 16, speedMax: 24,
+  },
+  damsel: {
+    label: 'Damselfish', water: 'salt', minLen: 11, maxLen: 15, bhRatio: 0.58,
+    base: ['#2a86c4', '#3a5fd0'], accent: 'light', pattern: 'solid',
+    tailLen: 0.36, tailH: 0.75, dorsal: 0.3, ventral: 0.22,
+    finColor: 'light', tailColor: 'base', speedMin: 24, speedMax: 34,
+  },
+  royal_gramma: {
+    label: 'Royal Gramma', water: 'salt', minLen: 12, maxLen: 16, bhRatio: 0.56,
+    base: '#ffd23f', accent: '#8e44ad', pattern: 'front',
+    tailLen: 0.36, tailH: 0.75, dorsal: 0.3, ventral: 0.24,
+    finColor: 'light', tailColor: 'base', speedMin: 20, speedMax: 28,
+  },
+  butterflyfish: {
+    label: 'Butterflyfish', water: 'salt', minLen: 14, maxLen: 18, bhRatio: 0.82,
+    base: '#f6f2e9', accent: '#ffd23f', pattern: 'stripes',
+    tailLen: 0.32, tailH: 0.7, dorsal: 0.45, ventral: 0.45,
+    finColor: '#ffd23f', tailColor: '#ffd23f', speedMin: 16, speedMax: 24,
+  },
+  puffer: {
+    label: 'Pufferfish', water: 'salt', minLen: 14, maxLen: 18, bhRatio: 0.8,
+    base: '#d9b06a', accent: '#7a5a2a', pattern: 'spot',
+    tailLen: 0.3, tailH: 0.6, dorsal: 0.3, ventral: 0.28,
+    finColor: 'light', tailColor: 'base', speedMin: 12, speedMax: 18,
+  },
+  lionfish: {
+    label: 'Lionfish', water: 'salt', minLen: 14, maxLen: 18, bhRatio: 0.66,
+    base: '#c0392b', accent: '#f6f2e9', pattern: 'stripes',
+    tailLen: 0.4, tailH: 0.9, dorsal: 0.85, ventral: 0.7,
+    finColor: '#e8d0c0', tailColor: '#d9b0a0', speedMin: 13, speedMax: 20,
+  },
+  wrasse: {
+    label: 'Wrasse', water: 'salt', minLen: 13, maxLen: 17, bhRatio: 0.5,
+    base: '#2aa06a', accent: '#ffd23f', pattern: 'rear',
+    tailLen: 0.36, tailH: 0.7, dorsal: 0.28, ventral: 0.2,
     finColor: 'light', tailColor: 'base', speedMin: 24, speedMax: 34,
   },
 };

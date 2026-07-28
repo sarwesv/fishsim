@@ -266,3 +266,112 @@ class Crab extends Creature {
     this.drawSelection(ctx);
   }
 }
+
+// ---- Lobster: crawls along the floor, facing its direction (saltwater) ----
+class Lobster extends Creature {
+  constructor(x, y, floorY) {
+    super(x, floorY);
+    this.type = 'lobster';
+    this.onFloor = true;
+    this.floorY = floorY;
+    this.radius = 8;
+    this.maxSpeed = 13;
+    this.dir = Math.random() < 0.5 ? 1 : -1;
+    this.turnT = rand(3, 7);
+  }
+  steer(dt, tank) {
+    this.turnT -= dt;
+    if (this.turnT <= 0) { this.turnT = rand(3, 7); this.dir *= -1; }
+    this.force(this.dir * 60, 0);
+    this.vx = Math.max(-this.maxSpeed, Math.min(this.maxSpeed, this.vx));
+  }
+  draw(ctx) {
+    ctx.save();
+    ctx.translate(this.x, this.y - 3);
+    ctx.scale(this.dir * this.scale, this.scale);
+    const step = Math.sin(this.animT * 8);
+    const body = '#c0392b', dark = '#8a2318', light = '#e8604a';
+    // segmented tail (back = left)
+    ctx.fillStyle = dark;
+    for (let i = 0; i < 3; i++) {
+      ctx.beginPath();
+      ctx.ellipse(-6 - i * 2.4, 0, 2.4 - i * 0.3, 2.8 - i * 0.4, 0, 0, Math.PI * 2);
+      ctx.fill();
+    }
+    // tail fan
+    ctx.beginPath();
+    ctx.moveTo(-11, 0); ctx.lineTo(-14, -3); ctx.lineTo(-14, 3);
+    ctx.closePath(); ctx.fill();
+    // legs
+    ctx.strokeStyle = dark; ctx.lineWidth = 0.8;
+    for (let i = -1; i <= 2; i++) {
+      const lx = i * 2.2;
+      ctx.beginPath(); ctx.moveTo(lx, 2); ctx.lineTo(lx - 1, 5 + (i % 2 ? step : -step)); ctx.stroke();
+    }
+    // body
+    ctx.fillStyle = body;
+    ctx.beginPath(); ctx.ellipse(-1, 0, 6, 3.2, 0, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = light;
+    ctx.beginPath(); ctx.ellipse(-1, -1, 4, 1.6, 0, 0, Math.PI * 2); ctx.fill();
+    // head + antennae (front = right)
+    ctx.fillStyle = body;
+    ctx.beginPath(); ctx.ellipse(6, 0, 2.4, 2.2, 0, 0, Math.PI * 2); ctx.fill();
+    ctx.strokeStyle = dark;
+    ctx.beginPath(); ctx.moveTo(7, -1); ctx.lineTo(12, -4 + step); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(7, 1); ctx.lineTo(12, 4 - step); ctx.stroke();
+    // claws
+    ctx.fillStyle = body;
+    ctx.beginPath(); ctx.ellipse(9, -3, 2.4, 1.8, 0.4, 0, Math.PI * 2); ctx.fill();
+    ctx.beginPath(); ctx.ellipse(9, 3, 2.4, 1.8, -0.4, 0, Math.PI * 2); ctx.fill();
+    // eye
+    ctx.fillStyle = '#141b26'; ctx.fillRect(6, -1, 1, 1);
+    ctx.restore();
+    this.drawSelection(ctx);
+  }
+}
+
+// ---- Octopus: drifts slowly in the lower water with waving arms (saltwater) ----
+class Octopus extends Creature {
+  constructor(x, y) {
+    super(x, y);
+    this.type = 'octopus';
+    this.radius = 9;
+    this.maxSpeed = 11;
+    this.color = pick(['#a05ad0', '#c0506a', '#7d5fc0', '#c06a90']);
+    this.dark = shade(this.color, -0.3);
+  }
+  steer(dt, tank) {
+    this.wander(dt, tank);
+    // keep to the lower half of the tank
+    if (this.y < tank.H * 0.5) this.force(0, 40);
+    this.avoidBounds(tank);
+    this.vx *= 0.96; this.vy *= 0.96;
+  }
+  draw(ctx) {
+    ctx.save();
+    ctx.translate(this.x, this.y);
+    ctx.scale(this.scale, this.scale);
+    // arms
+    ctx.strokeStyle = this.color; ctx.lineWidth = 1.6; ctx.lineCap = 'round';
+    for (let i = 0; i < 6; i++) {
+      const ax = (i - 2.5) * 1.8;
+      const wavePhase = this.animT * 3 + i;
+      ctx.beginPath();
+      ctx.moveTo(ax, 3);
+      ctx.quadraticCurveTo(ax + Math.sin(wavePhase) * 2, 7, ax + Math.sin(wavePhase) * 3, 10);
+      ctx.stroke();
+    }
+    // head / mantle
+    ctx.fillStyle = this.color;
+    ctx.beginPath(); ctx.ellipse(0, 0, 6, 6.5, 0, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = shade(this.color, 0.15);
+    ctx.beginPath(); ctx.ellipse(0, -2, 4, 3.5, 0, 0, Math.PI * 2); ctx.fill();
+    // eyes
+    ctx.fillStyle = '#f6f2e9';
+    ctx.fillRect(-3, -1, 2, 2); ctx.fillRect(1, -1, 2, 2);
+    ctx.fillStyle = '#141b26';
+    ctx.fillRect(-2, 0, 1, 1); ctx.fillRect(2, 0, 1, 1);
+    ctx.restore();
+    this.drawSelection(ctx);
+  }
+}
