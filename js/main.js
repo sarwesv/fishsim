@@ -3,17 +3,40 @@
 // select+delete, and recolor the gravel.
 
 const CREATURES = [
-  { type: 'koi', label: 'Koi', emoji: '🐟' },
-  { type: 'shrimp', label: 'Shrimp', emoji: '🦐' },
-  { type: 'snail', label: 'Snail', emoji: '🐌' },
-  { type: 'crab', label: 'Crab', emoji: '🦀' },
-  { type: 'plant', label: 'Plant', emoji: '🌿' },
+  { type: 'koi', label: 'Koi' },
+  { type: 'shrimp', label: 'Shrimp' },
+  { type: 'snail', label: 'Snail' },
+  { type: 'crab', label: 'Crab' },
+  { type: 'plant', label: 'Plant' },
 ];
 
 let tank;
 const startCounts = { koi: 2, shrimp: 1, snail: 1, crab: 0, plant: 2 };
 
 function $(id) { return document.getElementById(id); }
+
+// Render a real creature sprite onto a small canvas so the UI icons are the
+// same pixel art as the tank (no emoji — those aren't 8-bit). CSS upscales
+// them with image-rendering: pixelated.
+function makeSpriteIcon(type) {
+  const W = 40, H = 28;
+  const cvs = document.createElement('canvas');
+  cvs.width = W; cvs.height = H;
+  cvs.className = 'icon-canvas';
+  const ctx = cvs.getContext('2d');
+  ctx.imageSmoothingEnabled = false;
+  const cx = W / 2, cy = H / 2;
+  let c;
+  if (type === 'koi') { c = new Koi(cx, cy); c.scale = Math.min(1, (W * 0.82) / (c.bw * 1.4)); }
+  else if (type === 'shrimp') { c = new Shrimp(cx, cy); }
+  else if (type === 'snail') { c = new Snail(cx, cy + 3, cy + 3); }
+  else if (type === 'crab') { c = new Crab(cx, cy + 4, cy + 4); }
+  else if (type === 'plant') { c = new Plant(cx, H - 1); c.height = 0.82; }
+  c.dir = 1; c.animT = 0;
+  if (type === 'plant') c.draw(ctx, { H });
+  else c.draw(ctx);
+  return cvs;
+}
 
 function buildGravelSwatches(container, onPick) {
   container.innerHTML = '';
@@ -40,12 +63,13 @@ function buildTitle() {
     const wrap = document.createElement('div');
     wrap.className = 'pick';
     wrap.innerHTML =
-      `<div class="pick-emoji">${c.emoji}</div>` +
+      `<div class="pick-icon"></div>` +
       `<div class="pick-label">${c.label}</div>` +
       `<div class="stepper">` +
-      `<button class="minus" aria-label="fewer ${c.label}">–</button>` +
+      `<button class="minus" aria-label="fewer ${c.label}">-</button>` +
       `<span class="count" id="cnt-${c.type}">${startCounts[c.type]}</span>` +
       `<button class="plus" aria-label="more ${c.label}">+</button></div>`;
+    wrap.querySelector('.pick-icon').appendChild(makeSpriteIcon(c.type));
     wrap.querySelector('.plus').addEventListener('click', () => {
       startCounts[c.type] = Math.min(30, startCounts[c.type] + 1);
       $(`cnt-${c.type}`).textContent = startCounts[c.type];
@@ -96,8 +120,8 @@ function buildToolbar() {
   spawnRow.innerHTML = '';
   CREATURES.forEach((c) => {
     const b = document.createElement('button');
-    b.className = 'tool';
-    b.innerHTML = `<span>${c.emoji}</span>`;
+    b.className = 'tool tool-icon';
+    b.appendChild(makeSpriteIcon(c.type));
     b.title = `Add ${c.label}`;
     b.addEventListener('click', () => tank.spawn(c.type));
     spawnRow.appendChild(b);

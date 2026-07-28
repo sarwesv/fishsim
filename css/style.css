@@ -1,4 +1,11 @@
-/* Retro pixel fish tank — responsive for phone, tablet (iPad) & desktop. */
+/* 8-bit fish tank — pixel font, hard edges, responsive for phone/iPad/desktop. */
+
+@font-face {
+  font-family: "PixelFont";
+  src: url("../assets/fonts/press-start-2p.woff2") format("woff2"),
+       url("../assets/fonts/press-start-2p.woff") format("woff");
+  font-display: swap;
+}
 
 *, *::before, *::after { box-sizing: border-box; }
 
@@ -10,7 +17,8 @@
   --accent: #ffd23f;
   --accent-2: #ff7b3d;
   --danger: #e34b4b;
-  --shadow: 0 0 0 2px #041526, 3px 3px 0 0 #041526;
+  --edge: #041526;
+  --font: "PixelFont", "Courier New", monospace;
 }
 
 html, body {
@@ -18,18 +26,22 @@ html, body {
   height: 100%;
   background: var(--bg);
   color: var(--ink);
-  font-family: "Courier New", ui-monospace, monospace;
+  font-family: var(--font);
+  line-height: 1.6;
   -webkit-font-smoothing: none;
+  -moz-osx-font-smoothing: unset;
+  image-rendering: pixelated;
   overscroll-behavior: none;
+  -webkit-tap-highlight-color: transparent;
 }
 
-#app {
-  height: 100dvh;
-  display: flex;
-  flex-direction: column;
-}
+/* every pixel icon renders crisp, never blurred */
+.icon-canvas { image-rendering: pixelated; image-rendering: crisp-edges; display: block; }
 
+#app { height: 100dvh; display: flex; flex-direction: column; }
 .hidden { display: none !important; }
+
+button { font-family: var(--font); }
 
 /* ---------------- Title screen ---------------- */
 #title-screen {
@@ -37,131 +49,103 @@ html, body {
   overflow-y: auto;
   display: flex;
   justify-content: center;
-  padding: max(16px, env(safe-area-inset-top)) 16px calc(24px + env(safe-area-inset-bottom));
-  background:
-    radial-gradient(120% 80% at 50% -10%, #1c5c9a 0%, #0c3c6e 45%, #071b33 100%);
+  padding: max(18px, env(safe-area-inset-top)) 16px calc(28px + env(safe-area-inset-bottom));
+  background: radial-gradient(120% 80% at 50% -10%, #1c5c9a 0%, #0c3c6e 45%, #071b33 100%);
 }
 
-.title-inner {
-  width: 100%;
-  max-width: 640px;
-  text-align: center;
-}
+.title-inner { width: 100%; max-width: 640px; text-align: center; }
 
 .game-title {
-  font-weight: 900;
-  font-size: clamp(2.2rem, 9vw, 4rem);
-  line-height: 1;
-  letter-spacing: 3px;
-  margin: 8px 0 4px;
+  font-size: clamp(1.6rem, 8vw, 3.1rem);
+  line-height: 1.25;
+  margin: 10px 0 14px;
   color: var(--accent);
-  text-shadow: 3px 3px 0 var(--accent-2), 6px 6px 0 #041526;
-  text-transform: uppercase;
+  text-shadow: 3px 3px 0 var(--accent-2), 6px 6px 0 var(--edge);
 }
 
 .subtitle {
-  margin: 0 0 20px;
-  letter-spacing: 2px;
-  text-transform: uppercase;
-  font-size: clamp(0.7rem, 3vw, 0.9rem);
+  margin: 0 0 22px;
+  font-size: clamp(0.5rem, 2.6vw, 0.7rem);
   color: #9fc4e8;
 }
 
 .section-label {
-  text-transform: uppercase;
-  letter-spacing: 2px;
-  font-size: 0.8rem;
+  font-size: clamp(0.5rem, 2.4vw, 0.62rem);
   color: #9fc4e8;
-  margin: 18px 0 10px;
+  margin: 20px 0 12px;
 }
 
 .lineup {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(96px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
   gap: 10px;
 }
 
 .pick {
   background: var(--panel);
-  border: 2px solid #041526;
-  box-shadow: 3px 3px 0 #041526;
-  padding: 10px 6px;
-  border-radius: 4px;
+  border: 3px solid var(--edge);
+  box-shadow: 4px 4px 0 var(--edge);
+  padding: 12px 6px 10px;
 }
-.pick-emoji { font-size: 1.8rem; line-height: 1; }
-.pick-label {
-  text-transform: uppercase;
-  font-size: 0.7rem;
-  letter-spacing: 1px;
-  margin: 4px 0 8px;
-  color: #cfe2f5;
-}
-.stepper {
+.pick-icon {
+  height: 30px;
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 8px;
+  margin-bottom: 8px;
 }
+.pick-icon .icon-canvas { width: 42px; }
+.pick-label {
+  font-size: 0.5rem;
+  margin: 0 0 10px;
+  color: #cfe2f5;
+}
+.stepper { display: flex; align-items: center; justify-content: center; gap: 8px; }
 .stepper button {
-  width: 34px; height: 34px;
-  font-size: 1.2rem; font-weight: 900;
+  width: 36px; height: 36px;
+  font-size: 0.9rem;
   background: var(--panel-2);
   color: var(--ink);
-  border: 2px solid #041526;
-  border-radius: 4px;
+  border: 3px solid var(--edge);
   cursor: pointer;
+  line-height: 1;
 }
 .stepper button:active { transform: translate(1px, 1px); }
-.count { min-width: 20px; font-weight: 900; font-size: 1.05rem; }
+.count { min-width: 22px; font-size: 0.7rem; }
 
-.swatches {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  justify-content: center;
-}
+.swatches { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; }
 .swatch {
   width: 34px; height: 34px;
-  border: 2px solid #041526;
-  border-radius: 4px;
+  border: 3px solid var(--edge);
   cursor: pointer;
   padding: 0;
 }
-.swatch.sel { outline: 3px solid var(--accent); outline-offset: 1px; }
-.swatches.small .swatch { width: 24px; height: 24px; }
+.swatch.sel { outline: 3px solid var(--accent); outline-offset: 2px; }
+.swatches.small .swatch { width: 26px; height: 26px; border-width: 2px; }
 
 .start-btn {
-  margin: 26px auto 6px;
+  margin: 28px auto 8px;
   display: block;
-  font-size: 1.3rem;
-  font-weight: 900;
-  letter-spacing: 3px;
-  text-transform: uppercase;
-  padding: 14px 40px;
+  font-size: clamp(0.8rem, 3.4vw, 1.05rem);
+  padding: 16px 40px;
   color: #08260f;
   background: var(--accent);
-  border: 2px solid #041526;
-  box-shadow: 4px 4px 0 #041526;
-  border-radius: 4px;
+  border: 3px solid var(--edge);
+  box-shadow: 5px 5px 0 var(--edge);
   cursor: pointer;
 }
-.start-btn:active { transform: translate(2px, 2px); box-shadow: 2px 2px 0 #041526; }
+.start-btn:active { transform: translate(2px, 2px); box-shadow: 3px 3px 0 var(--edge); }
 
 .hint {
-  font-size: 0.72rem;
+  font-size: 0.5rem;
   color: #7fa8cf;
-  max-width: 360px;
-  margin: 12px auto 0;
-  line-height: 1.4;
+  max-width: 420px;
+  margin: 14px auto 0;
+  line-height: 1.9;
 }
 
 /* ---------------- Tank view ---------------- */
-#tank-screen {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  min-height: 0;
-}
+#tank-screen { flex: 1; display: flex; flex-direction: column; min-height: 0; }
 
 #tank-wrap {
   flex: 1;
@@ -179,7 +163,7 @@ html, body {
   display: block;
   image-rendering: pixelated;
   image-rendering: crisp-edges;
-  touch-action: none;       /* let us track finger without page scroll/zoom */
+  touch-action: none;
   cursor: crosshair;
 }
 
@@ -191,61 +175,50 @@ html, body {
   gap: 10px 14px;
   padding: 10px 12px calc(10px + env(safe-area-inset-bottom));
   background: var(--panel);
-  border-top: 3px solid #041526;
+  border-top: 4px solid var(--edge);
 }
 
-.tool-group {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-.tool-group.grow { flex: 1 1 160px; }
-.group-label {
-  text-transform: uppercase;
-  letter-spacing: 1px;
-  font-size: 0.65rem;
-  color: #9fc4e8;
-}
+.tool-group { display: flex; align-items: center; gap: 8px; }
+.tool-group.grow { flex: 1 1 150px; }
+.group-label { font-size: 0.5rem; color: #9fc4e8; }
 
 .spawn-row { display: flex; gap: 6px; }
 
 .tool {
-  min-height: 44px;
-  min-width: 44px;
-  padding: 6px 12px;
-  font-family: inherit;
-  font-size: 1.2rem;
-  font-weight: 900;
+  min-height: 46px;
+  min-width: 46px;
+  padding: 8px 12px;
+  font-size: 0.62rem;
   color: var(--ink);
   background: var(--panel-2);
-  border: 2px solid #041526;
-  box-shadow: 2px 2px 0 #041526;
-  border-radius: 4px;
+  border: 3px solid var(--edge);
+  box-shadow: 3px 3px 0 var(--edge);
   cursor: pointer;
   display: inline-flex;
   align-items: center;
-  gap: 4px;
+  justify-content: center;
 }
-.tool:active { transform: translate(1px, 1px); box-shadow: 1px 1px 0 #041526; }
-.tool.danger { background: var(--danger); font-size: 0.85rem; }
+.tool:active { transform: translate(1px, 1px); box-shadow: 2px 2px 0 var(--edge); }
+.tool.danger { background: var(--danger); }
 .tool:disabled { opacity: 0.4; cursor: not-allowed; }
-#menu-btn { font-size: 0.85rem; }
+.tool-icon { padding: 6px 8px; }
+.tool-icon .icon-canvas { width: 32px; }
 
-/* Phones: stack toolbar controls, larger touch targets */
+/* Phones: tighten spacing, hide the little group labels */
 @media (max-width: 560px) {
   #toolbar { gap: 8px 10px; padding: 8px 8px calc(8px + env(safe-area-inset-bottom)); }
   .group-label { display: none; }
-  .tool.danger, #menu-btn { font-size: 0; padding: 6px 10px; }
-  .tool.danger::first-letter { font-size: 1.2rem; }
+  .tool { font-size: 0.55rem; padding: 8px 10px; }
+  .tool-icon .icon-canvas { width: 28px; }
 }
 
-/* Landscape phones / small tablets: keep toolbar compact */
+/* Landscape phones: keep the toolbar shallow */
 @media (max-height: 480px) and (orientation: landscape) {
   #toolbar { padding: 6px 10px; }
-  .tool { min-height: 40px; }
+  .tool { min-height: 42px; }
 }
 
-/* iPad & up: roomier title layout */
+/* iPad & up: fixed 5-across lineup */
 @media (min-width: 768px) {
   .lineup { grid-template-columns: repeat(5, 1fr); }
 }
