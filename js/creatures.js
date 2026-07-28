@@ -16,6 +16,7 @@ class Creature {
     this.maxSpeed = 30;
     this.dir = Math.random() < 0.5 ? 1 : -1;
     this.animT = Math.random() * 10;
+    this.scale = 1;                     // GSAP animates this for spawn/delete pops
     this.selected = false;
     this.onFloor = false;
     this.type = 'creature';
@@ -88,11 +89,14 @@ class Creature {
 
   drawSelection(ctx) {
     if (!this.selected) return;
+    const pulse = (window.SELPULSE && window.SELPULSE.v) || 0;
     ctx.strokeStyle = '#ffe066';
+    ctx.globalAlpha = 0.6 + pulse * 0.4;
     ctx.lineWidth = 1;
     ctx.beginPath();
-    ctx.arc(this.x, this.y, this.radius + 3, 0, Math.PI * 2);
+    ctx.arc(this.x, this.y, this.radius + 3 + pulse * 2, 0, Math.PI * 2);
     ctx.stroke();
+    ctx.globalAlpha = 1;
   }
 }
 
@@ -119,7 +123,7 @@ class Shrimp extends Creature {
   draw(ctx) {
     ctx.save();
     ctx.translate(this.x, this.y);
-    ctx.scale(this.dir, 1);
+    ctx.scale(this.dir * this.scale, this.scale);
     const bob = Math.sin(this.animT * 12) * 0.6;
     ctx.fillStyle = PALETTE.shrimpBody;
     // curved body
@@ -168,7 +172,7 @@ class Snail extends Creature {
   draw(ctx) {
     ctx.save();
     ctx.translate(this.x, this.y - 2);
-    ctx.scale(this.dir, 1);
+    ctx.scale(this.dir * this.scale, this.scale);
     // foot
     ctx.fillStyle = PALETTE.snailBody;
     ctx.beginPath();
@@ -225,6 +229,7 @@ class Crab extends Creature {
   draw(ctx) {
     ctx.save();
     ctx.translate(this.x, this.y - 3);
+    ctx.scale(this.scale, this.scale);
     const step = Math.sin(this.animT * 10);
     // legs
     ctx.strokeStyle = PALETTE.crabDark;

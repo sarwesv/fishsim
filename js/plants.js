@@ -14,6 +14,7 @@ class Plant {
     this.width = rand(2.5, 4);
     this.blades = randInt(2, 3);
     this.selected = false;
+    this.scale = 1;                 // GSAP animates this for spawn/delete pops
     this.animT = 0;
   }
 
@@ -25,7 +26,7 @@ class Plant {
   }
 
   draw(ctx, tank) {
-    const h = (this.pxHeight = tank.H * this.height);
+    const h = (this.pxHeight = tank.H * this.height * this.scale);
     for (let b = 0; b < this.blades; b++) {
       const off = (b - (this.blades - 1) / 2) * 3;
       ctx.strokeStyle = b % 2 ? this.color2 : this.color;

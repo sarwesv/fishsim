@@ -117,7 +117,7 @@ class Koi extends Creature {
   draw(ctx) {
     ctx.save();
     ctx.translate(this.x, this.y);
-    ctx.scale(this.dir, 1);
+    ctx.scale(this.dir * this.scale, this.scale);
 
     // animated tail at the back (left in local space)
     const wag = Math.sin(this.animT * 7) * (this.bh * 0.5);
@@ -144,11 +144,14 @@ class Koi extends Creature {
     ctx.restore();
 
     if (this.selected) {
+      const pulse = (window.SELPULSE && window.SELPULSE.v) || 0;
       ctx.strokeStyle = '#ffe066';
+      ctx.globalAlpha = 0.6 + pulse * 0.4;
       ctx.lineWidth = 1;
       ctx.beginPath();
-      ctx.ellipse(this.x, this.y, this.bw * 0.7, this.bh * 0.9, 0, 0, Math.PI * 2);
+      ctx.ellipse(this.x, this.y, this.bw * 0.7 + pulse * 2, this.bh * 0.9 + pulse * 2, 0, 0, Math.PI * 2);
       ctx.stroke();
+      ctx.globalAlpha = 1;
     }
   }
 }

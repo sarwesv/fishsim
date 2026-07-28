@@ -60,18 +60,34 @@ function buildTitle() {
   buildGravelSwatches($('title-gravel'), (col) => { tank.gravelColor = col; });
 }
 
-function startGame() {
-  tank.clear();
-  CREATURES.forEach((c) => {
-    for (let i = 0; i < startCounts[c.type]; i++) tank.spawn(c.type);
+// GSAP cross-fade between the two screens; onMid runs while the incoming
+// screen is laid out but before it fades in.
+function transition(fromId, toId, onMid) {
+  const from = $(fromId), to = $(toId);
+  gsap.to(from, {
+    autoAlpha: 0, duration: 0.25, ease: 'power1.in',
+    onComplete: () => {
+      from.classList.add('hidden');
+      gsap.set(from, { clearProps: 'opacity,visibility' });
+      to.classList.remove('hidden');
+      if (onMid) onMid();
+      gsap.fromTo(to, { autoAlpha: 0 }, { autoAlpha: 1, duration: 0.3, ease: 'power1.out' });
+    },
   });
-  if (tank.creatures.length === 0 && tank.plants.length === 0) {
-    tank.spawn('koi'); tank.spawn('koi');
-  }
-  $('title-screen').classList.add('hidden');
-  $('tank-screen').classList.remove('hidden');
-  tank.resize();
-  tank.start();
+}
+
+function startGame() {
+  transition('title-screen', 'tank-screen', () => {
+    tank.clear();
+    tank.resize();
+    CREATURES.forEach((c) => {
+      for (let i = 0; i < startCounts[c.type]; i++) tank.spawn(c.type);
+    });
+    if (tank.creatures.length === 0 && tank.plants.length === 0) {
+      tank.spawn('koi'); tank.spawn('koi');
+    }
+    tank.start();
+  });
 }
 
 // ---------- Tank toolbar ----------
@@ -96,10 +112,20 @@ function buildToolbar() {
   tank.onSelect = (obj) => { del.disabled = !obj; };
 
   $('menu-btn').addEventListener('click', () => {
-    tank.stop();
-    $('tank-screen').classList.add('hidden');
-    $('title-screen').classList.remove('hidden');
+    transition('tank-screen', 'title-screen', () => tank.stop());
   });
+}
+
+// GSAP entrance for the title screen
+function animateTitleIn() {
+  const tl = gsap.timeline();
+  tl.from('.game-title', { y: -34, autoAlpha: 0, duration: 0.6, ease: 'back.out(1.7)' })
+    .from('.subtitle', { autoAlpha: 0, duration: 0.4 }, '-=0.2')
+    .from('.section-label', { autoAlpha: 0, x: -12, duration: 0.3, stagger: 0.1 }, '-=0.1')
+    .from('#lineup .pick', { y: 20, autoAlpha: 0, duration: 0.4, stagger: 0.06 }, '-=0.2')
+    .from('#title-gravel .swatch', { scale: 0, duration: 0.3, stagger: 0.03, ease: 'back.out(2)' }, '-=0.2')
+    .from('.start-btn', { scale: 0, autoAlpha: 0, duration: 0.5, ease: 'back.out(2)' }, '-=0.1')
+    .from('.hint', { autoAlpha: 0, duration: 0.4 }, '-=0.2');
 }
 
 function init() {
@@ -107,6 +133,7 @@ function init() {
   buildTitle();
   buildToolbar();
   $('start-btn').addEventListener('click', startGame);
+  animateTitleIn();
 
   let rT;
   window.addEventListener('resize', () => {

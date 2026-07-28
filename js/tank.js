@@ -28,6 +28,10 @@ class Tank {
     this.last = 0;
     this.running = false;
 
+    // GSAP-driven pulse shared by every selection ring
+    window.SELPULSE = { v: 0 };
+    gsap.to(window.SELPULSE, { v: 1, duration: 0.65, repeat: -1, yoyo: true, ease: 'sine.inOut' });
+
     this._bindPointer();
     this.resize();
   }
@@ -84,8 +88,13 @@ class Tank {
     else if (type === 'shrimp') c = new Shrimp(x, rand(this.H * 0.4, this.gravelTop - 8));
     else if (type === 'snail') c = new Snail(x, 0, this.gravelTop);
     else if (type === 'crab') c = new Crab(x, 0, this.gravelTop);
-    else if (type === 'plant') { const p = new Plant(x, this.gravelTop); this.plants.push(p); return p; }
-    if (c) this.creatures.push(c);
+    else if (type === 'plant') { c = new Plant(x, this.gravelTop); this.plants.push(c); }
+    if (c) {
+      if (c.type !== 'plant') this.creatures.push(c);
+      // GSAP spawn pop-in
+      c.scale = 0;
+      gsap.to(c, { scale: 1, duration: 0.5, ease: 'back.out(2.2)' });
+    }
     return c;
   }
 
@@ -95,9 +104,19 @@ class Tank {
 
   deleteSelected() {
     if (!this.selected) return;
-    this.creatures = this.creatures.filter((c) => c !== this.selected);
-    this.plants = this.plants.filter((p) => p !== this.selected);
-    this.selected = null;
+    const t = this.selected;
+    this._select(null);
+    // GSAP shrink-out, then remove from the sim
+    gsap.killTweensOf(t);
+    gsap.to(t, {
+      scale: 0,
+      duration: 0.3,
+      ease: 'back.in(2)',
+      onComplete: () => {
+        this.creatures = this.creatures.filter((c) => c !== t);
+        this.plants = this.plants.filter((p) => p !== t);
+      },
+    });
   }
 
   selectAt(x, y) {
@@ -174,7 +193,11 @@ class Tank {
     const n = Math.min(kois.length, randInt(1, 2));
     for (let i = 0; i < n; i++) {
       const k = kois.splice(randInt(0, kois.length - 1), 1)[0];
-      if (k) k.curious = rand(3, 6);
+      if (k) {
+        k.curious = rand(3, 6);
+        // GSAP "notice" bounce
+        gsap.fromTo(k, { scale: 1.3 }, { scale: 1, duration: 0.5, ease: 'elastic.out(1, 0.4)' });
+      }
     }
   }
 
