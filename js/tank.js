@@ -85,6 +85,7 @@ class Tank {
     let c;
     const x = rand(this.wallL + 10, this.wallR - 10);
     if (type === 'koi') c = new Koi(x, rand(this.waterTop + 20, this.gravelTop - 20));
+    else if (FISH_SPECIES[type]) c = new FinFish(type, x, rand(this.waterTop + 18, this.gravelTop - 18));
     else if (type === 'shrimp') c = new Shrimp(x, rand(this.H * 0.4, this.gravelTop - 8));
     else if (type === 'snail') c = new Snail(x, 0, this.gravelTop);
     else if (type === 'crab') c = new Crab(x, 0, this.gravelTop);
@@ -189,10 +190,10 @@ class Tank {
     if (this.curiosityT > 0) return;
     this.curiosityT = rand(4, 9);
     if (!this.pointer.active || !this.isSwimmable(this.pointer.x, this.pointer.y)) return;
-    const kois = this.creatures.filter((c) => c.type === 'koi' && c.curious <= 0);
-    const n = Math.min(kois.length, randInt(1, 2));
+    const fish = this.creatures.filter((c) => c.isFish && c.curious <= 0);
+    const n = Math.min(fish.length, randInt(1, 2));
     for (let i = 0; i < n; i++) {
-      const k = kois.splice(randInt(0, kois.length - 1), 1)[0];
+      const k = fish.splice(randInt(0, fish.length - 1), 1)[0];
       if (k) {
         k.curious = rand(3, 6);
         // GSAP "notice" bounce

@@ -72,7 +72,9 @@ function buildKoiBody(p) {
   return cvs;
 }
 
-class Koi extends Creature {
+// Koi extends Fish so it shares swimming, bubbles and pointer curiosity;
+// it only overrides construction (procedural pattern) and drawing.
+class Koi extends Fish {
   constructor(x, y) {
     super(x, y);
     this.type = 'koi';
@@ -82,36 +84,6 @@ class Koi extends Creature {
     this.bh = this.pattern.bh;
     this.radius = this.bw * 0.45;
     this.maxSpeed = rand(22, 34);
-    this.bubbleT = rand(2, 7);
-    this.curious = 0;      // seconds of remaining curiosity
-  }
-
-  steer(dt, tank) {
-    // Occasionally follow the pointer — but only if it's somewhere a koi
-    // could actually swim to. If it's in the gravel or outside, ignore it.
-    if (this.curious > 0) {
-      this.curious -= dt;
-      const p = tank.pointer;
-      if (p.active && tank.isSwimmable(p.x, p.y)) {
-        this.seek(p.x, p.y, 0.9);
-        this.avoidBounds(tank);
-        this.maybeBubble(dt, tank);
-        return;
-      }
-      this.curious = 0; // pointer left the water — lose interest
-    }
-    this.wander(dt, tank);
-    this.avoidBounds(tank);
-    this.maybeBubble(dt, tank);
-  }
-
-  maybeBubble(dt, tank) {
-    this.bubbleT -= dt;
-    if (this.bubbleT <= 0) {
-      this.bubbleT = rand(3, 9);
-      const front = this.dir * (this.bw / 2);
-      tank.addBubble(this.x + front, this.y - 1);
-    }
   }
 
   draw(ctx) {

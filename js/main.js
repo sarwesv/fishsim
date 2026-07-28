@@ -4,6 +4,11 @@
 
 const CREATURES = [
   { type: 'koi', label: 'Koi' },
+  { type: 'tetra', label: 'Tetra' },
+  { type: 'goldfish', label: 'Goldfish' },
+  { type: 'angelfish', label: 'Angelfish' },
+  { type: 'betta', label: 'Betta' },
+  { type: 'guppy', label: 'Guppy' },
   { type: 'shrimp', label: 'Shrimp' },
   { type: 'snail', label: 'Snail' },
   { type: 'crab', label: 'Crab' },
@@ -11,7 +16,10 @@ const CREATURES = [
 ];
 
 let tank;
-const startCounts = { koi: 2, shrimp: 1, snail: 1, crab: 0, plant: 2 };
+const startCounts = {
+  koi: 2, tetra: 3, goldfish: 1, angelfish: 1, betta: 0, guppy: 2,
+  shrimp: 1, snail: 1, crab: 0, plant: 2,
+};
 
 function $(id) { return document.getElementById(id); }
 
@@ -28,6 +36,12 @@ function makeSpriteIcon(type) {
   const cx = W / 2, cy = H / 2;
   let c;
   if (type === 'koi') { c = new Koi(cx, cy); c.scale = Math.min(1, (W * 0.82) / (c.bw * 1.4)); }
+  else if (FISH_SPECIES[type]) {
+    c = new FinFish(type, cx, cy);
+    const ew = c.bw * (1 + c.tailLen) + 2;
+    const eh = c.bh * (1 + c.dorsal + c.ventral) + 2;
+    c.scale = Math.min(1, (W * 0.86) / ew, (H * 0.86) / eh);
+  }
   else if (type === 'shrimp') { c = new Shrimp(cx, cy); }
   else if (type === 'snail') { c = new Snail(cx, cy + 3, cy + 3); }
   else if (type === 'crab') { c = new Crab(cx, cy + 4, cy + 4); }
