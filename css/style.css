@@ -1,0 +1,251 @@
+/* Retro pixel fish tank — responsive for phone, tablet (iPad) & desktop. */
+
+*, *::before, *::after { box-sizing: border-box; }
+
+:root {
+  --bg: #071b33;
+  --panel: #0d2a4a;
+  --panel-2: #123a63;
+  --ink: #eaf3ff;
+  --accent: #ffd23f;
+  --accent-2: #ff7b3d;
+  --danger: #e34b4b;
+  --shadow: 0 0 0 2px #041526, 3px 3px 0 0 #041526;
+}
+
+html, body {
+  margin: 0;
+  height: 100%;
+  background: var(--bg);
+  color: var(--ink);
+  font-family: "Courier New", ui-monospace, monospace;
+  -webkit-font-smoothing: none;
+  overscroll-behavior: none;
+}
+
+#app {
+  height: 100dvh;
+  display: flex;
+  flex-direction: column;
+}
+
+.hidden { display: none !important; }
+
+/* ---------------- Title screen ---------------- */
+#title-screen {
+  flex: 1;
+  overflow-y: auto;
+  display: flex;
+  justify-content: center;
+  padding: max(16px, env(safe-area-inset-top)) 16px calc(24px + env(safe-area-inset-bottom));
+  background:
+    radial-gradient(120% 80% at 50% -10%, #1c5c9a 0%, #0c3c6e 45%, #071b33 100%);
+}
+
+.title-inner {
+  width: 100%;
+  max-width: 640px;
+  text-align: center;
+}
+
+.game-title {
+  font-weight: 900;
+  font-size: clamp(2.2rem, 9vw, 4rem);
+  line-height: 1;
+  letter-spacing: 3px;
+  margin: 8px 0 4px;
+  color: var(--accent);
+  text-shadow: 3px 3px 0 var(--accent-2), 6px 6px 0 #041526;
+  text-transform: uppercase;
+}
+
+.subtitle {
+  margin: 0 0 20px;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  font-size: clamp(0.7rem, 3vw, 0.9rem);
+  color: #9fc4e8;
+}
+
+.section-label {
+  text-transform: uppercase;
+  letter-spacing: 2px;
+  font-size: 0.8rem;
+  color: #9fc4e8;
+  margin: 18px 0 10px;
+}
+
+.lineup {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(96px, 1fr));
+  gap: 10px;
+}
+
+.pick {
+  background: var(--panel);
+  border: 2px solid #041526;
+  box-shadow: 3px 3px 0 #041526;
+  padding: 10px 6px;
+  border-radius: 4px;
+}
+.pick-emoji { font-size: 1.8rem; line-height: 1; }
+.pick-label {
+  text-transform: uppercase;
+  font-size: 0.7rem;
+  letter-spacing: 1px;
+  margin: 4px 0 8px;
+  color: #cfe2f5;
+}
+.stepper {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+.stepper button {
+  width: 34px; height: 34px;
+  font-size: 1.2rem; font-weight: 900;
+  background: var(--panel-2);
+  color: var(--ink);
+  border: 2px solid #041526;
+  border-radius: 4px;
+  cursor: pointer;
+}
+.stepper button:active { transform: translate(1px, 1px); }
+.count { min-width: 20px; font-weight: 900; font-size: 1.05rem; }
+
+.swatches {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: center;
+}
+.swatch {
+  width: 34px; height: 34px;
+  border: 2px solid #041526;
+  border-radius: 4px;
+  cursor: pointer;
+  padding: 0;
+}
+.swatch.sel { outline: 3px solid var(--accent); outline-offset: 1px; }
+.swatches.small .swatch { width: 24px; height: 24px; }
+
+.start-btn {
+  margin: 26px auto 6px;
+  display: block;
+  font-size: 1.3rem;
+  font-weight: 900;
+  letter-spacing: 3px;
+  text-transform: uppercase;
+  padding: 14px 40px;
+  color: #08260f;
+  background: var(--accent);
+  border: 2px solid #041526;
+  box-shadow: 4px 4px 0 #041526;
+  border-radius: 4px;
+  cursor: pointer;
+}
+.start-btn:active { transform: translate(2px, 2px); box-shadow: 2px 2px 0 #041526; }
+
+.hint {
+  font-size: 0.72rem;
+  color: #7fa8cf;
+  max-width: 360px;
+  margin: 12px auto 0;
+  line-height: 1.4;
+}
+
+/* ---------------- Tank view ---------------- */
+#tank-screen {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+#tank-wrap {
+  flex: 1;
+  position: relative;
+  min-height: 0;
+  background: #0c3c6e;
+  overflow: hidden;
+}
+
+#tank {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  display: block;
+  image-rendering: pixelated;
+  image-rendering: crisp-edges;
+  touch-action: none;       /* let us track finger without page scroll/zoom */
+  cursor: crosshair;
+}
+
+#toolbar {
+  flex-shrink: 0;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px 14px;
+  padding: 10px 12px calc(10px + env(safe-area-inset-bottom));
+  background: var(--panel);
+  border-top: 3px solid #041526;
+}
+
+.tool-group {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.tool-group.grow { flex: 1 1 160px; }
+.group-label {
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  font-size: 0.65rem;
+  color: #9fc4e8;
+}
+
+.spawn-row { display: flex; gap: 6px; }
+
+.tool {
+  min-height: 44px;
+  min-width: 44px;
+  padding: 6px 12px;
+  font-family: inherit;
+  font-size: 1.2rem;
+  font-weight: 900;
+  color: var(--ink);
+  background: var(--panel-2);
+  border: 2px solid #041526;
+  box-shadow: 2px 2px 0 #041526;
+  border-radius: 4px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+.tool:active { transform: translate(1px, 1px); box-shadow: 1px 1px 0 #041526; }
+.tool.danger { background: var(--danger); font-size: 0.85rem; }
+.tool:disabled { opacity: 0.4; cursor: not-allowed; }
+#menu-btn { font-size: 0.85rem; }
+
+/* Phones: stack toolbar controls, larger touch targets */
+@media (max-width: 560px) {
+  #toolbar { gap: 8px 10px; padding: 8px 8px calc(8px + env(safe-area-inset-bottom)); }
+  .group-label { display: none; }
+  .tool.danger, #menu-btn { font-size: 0; padding: 6px 10px; }
+  .tool.danger::first-letter { font-size: 1.2rem; }
+}
+
+/* Landscape phones / small tablets: keep toolbar compact */
+@media (max-height: 480px) and (orientation: landscape) {
+  #toolbar { padding: 6px 10px; }
+  .tool { min-height: 40px; }
+}
+
+/* iPad & up: roomier title layout */
+@media (min-width: 768px) {
+  .lineup { grid-template-columns: repeat(5, 1fr); }
+}

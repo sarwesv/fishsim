@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+  <meta name="theme-color" content="#0c3c6e" />
+  <title>PIXEL FISH TANK</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'><text y='14' font-size='14'>🐟</text></svg>" />
+  <link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+  <div id="app">
+    <!-- ===== Title / selection screen ===== -->
+    <section id="title-screen">
+      <div class="title-inner">
+        <h1 class="game-title">PIXEL<br />FISH&nbsp;TANK</h1>
+        <p class="subtitle">build your retro aquarium</p>
+
+        <h2 class="section-label">Starting lineup</h2>
+        <div id="lineup" class="lineup"></div>
+
+        <h2 class="section-label">Gravel</h2>
+        <div id="title-gravel" class="swatches"></div>
+
+        <button id="start-btn" class="start-btn">▶ START</button>
+        <p class="hint">tip: move your cursor / finger in the water and a curious koi may swim over</p>
+      </div>
+    </section>
+
+    <!-- ===== Tank view ===== -->
+    <section id="tank-screen" class="hidden">
+      <div id="tank-wrap">
+        <canvas id="tank"></canvas>
+      </div>
+      <div id="toolbar">
+        <div class="tool-group">
+          <span class="group-label">Add</span>
+          <div id="spawn-row" class="spawn-row"></div>
+        </div>
+        <div class="tool-group">
+          <button id="delete-btn" class="tool danger" title="Delete selected">🗑 Delete</button>
+        </div>
+        <div class="tool-group grow">
+          <span class="group-label">Gravel</span>
+          <div id="tank-gravel" class="swatches small"></div>
+        </div>
+        <div class="tool-group">
+          <button id="menu-btn" class="tool" title="Back to menu">☰ Menu</button>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <script src="js/palette.js"></script>
+  <script src="js/creatures.js"></script>
+  <script src="js/koi.js"></script>
+  <script src="js/plants.js"></script>
+  <script src="js/tank.js"></script>
+  <script src="js/main.js"></script>
+</body>
+</html>
