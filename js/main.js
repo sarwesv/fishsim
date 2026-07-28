@@ -194,9 +194,10 @@ function addFromLibrary(type) {
 
 // ---------- toast ----------
 let toastTween;
-function toast(msg) {
+function toast(msg, ok) {
   const el = $('toast');
   el.textContent = msg;
+  el.classList.toggle('toast-ok', !!ok);
   el.classList.remove('hidden');
   if (toastTween) toastTween.kill();
   gsap.killTweensOf(el);
@@ -209,6 +210,43 @@ function toast(msg) {
 function updateCap() {
   const el = $('cap');
   if (el) el.textContent = `${tank.creatures.length}/${tank.maxCreatures}`;
+}
+
+// ---------- surprise / random stock ----------
+function shuffled(arr) {
+  const a = arr.slice();
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+
+// Title: randomize the starting lineup for the chosen water type.
+function surpriseTitle() {
+  for (const k of Object.keys(startCounts)) delete startCounts[k];
+  const pool = speciesForWater(selectedWater);
+  const fish = shuffled(pool.filter((s) => s.group === 'fish'));
+  const other = shuffled(pool.filter((s) => s.group !== 'fish'));
+  fish.slice(0, randInt(3, 5)).forEach((s) => { startCounts[s.type] = randInt(1, 4); });
+  other.slice(0, randInt(1, 3)).forEach((s) => { startCounts[s.type] = randInt(1, 3); });
+  renderLineup();
+  if (!$('library').classList.contains('hidden')) renderLibrary();
+}
+
+// Tank: stock a random assortment of compatible creatures (respects cap).
+function surpriseTank() {
+  if (!tank.waterType) tank.waterType = Math.random() < 0.5 ? 'fresh' : 'salt';
+  const pool = speciesForWater(tank.waterType).filter((s) => s.group !== 'plant');
+  const target = Math.min(tank.maxCreatures, tank.creatures.length + randInt(6, 10));
+  let guard = 0;
+  while (tank.creatures.length < target && guard++ < 300) {
+    tank.trySpawn(pick(pool).type);
+  }
+  for (let i = 0; i < randInt(1, 3); i++) tank.trySpawn('plant');
+  updateCap();
+  if (!$('library').classList.contains('hidden')) renderLibrary();
+  toast('STOCKED!', true);
 }
 
 // ---------- screens ----------
@@ -260,8 +298,10 @@ function init() {
   buildGravelSwatches($('tank-gravel'), (col) => { tank.gravelColor = col; });
 
   $('browse-btn').addEventListener('click', () => openLibrary('title'));
+  $('surprise-btn').addEventListener('click', surpriseTitle);
   $('start-btn').addEventListener('click', startGame);
   $('add-btn').addEventListener('click', () => openLibrary('tank'));
+  $('surprise-btn2').addEventListener('click', surpriseTank);
   $('delete-btn').addEventListener('click', () => { tank.deleteSelected(); });
   $('delete-btn').disabled = true;
   $('menu-btn').addEventListener('click', () => {

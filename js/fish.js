@@ -257,6 +257,18 @@ const FISH_SPECIES = {
     tailLen: 0.36, tailH: 0.75, dorsal: 0.28, ventral: 0.2,
     finColor: 'light', tailColor: 'base', speedMin: 20, speedMax: 30,
   },
+  cory: {
+    label: 'Cory Catfish', water: 'fresh', bottom: true, minLen: 11, maxLen: 14, bhRatio: 0.6,
+    base: ['#c8a06a', '#9a7a4a', '#d0b080'], accent: '#5a4630', pattern: 'spot',
+    tailLen: 0.34, tailH: 0.7, dorsal: 0.4, ventral: 0.2,
+    finColor: 'light', tailColor: 'base', speedMin: 10, speedMax: 16,
+  },
+  pleco: {
+    label: 'Pleco', water: 'fresh', bottom: true, minLen: 18, maxLen: 24, bhRatio: 0.42,
+    base: ['#4a4038', '#5a4a3a', '#3a3630'], accent: '#2a241e', pattern: 'spot',
+    tailLen: 0.3, tailH: 0.6, dorsal: 0.7, ventral: 0.2,
+    finColor: 'dark', tailColor: 'base', speedMin: 8, speedMax: 14,
+  },
 
   // ---------- saltwater ----------
   clownfish: {
@@ -345,5 +357,29 @@ class FinFish extends Fish {
     this.radius = bw * 0.45;
     this.maxSpeed = rand(s.speedMin, s.speedMax);
     this.tailLen = s.tailLen; this.dorsal = s.dorsal; this.ventral = s.ventral;
+  }
+}
+
+// Bottom-dwelling fish (cory catfish, pleco): same detailed sprite, but they
+// hug the gravel and ignore the pointer-curiosity that free swimmers have.
+class BottomFish extends FinFish {
+  constructor(species, x, y) {
+    super(species, x, y);
+    this.bottom = true;
+    this.maxSpeed = rand(9, 16);
+  }
+  steer(dt, tank) {
+    const floor = tank.gravelTop - this.bh * 0.55;
+    this.retarget -= dt;
+    if (this.retarget <= 0) {
+      this.retarget = rand(2, 5);
+      this.tx = rand(tank.wallL + 8, tank.wallR - 8);
+      this.ty = floor + rand(-3, 2);
+    }
+    this.seek(this.tx, this.ty, 0.5);
+    if (this.y < floor - 6) this.force(0, 30);   // stay down near the gravel
+    if (this.x < tank.wallL + 10) this.force(40, 0);
+    if (this.x > tank.wallR - 10) this.force(-40, 0);
+    this.maybeBubble(dt, tank);
   }
 }
