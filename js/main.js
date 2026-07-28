@@ -35,18 +35,18 @@ function makeSpriteIcon(type) {
   ctx.imageSmoothingEnabled = false;
   const cx = W / 2, cy = H / 2;
   let c;
-  if (type === 'koi') { c = new Koi(cx, cy); c.scale = Math.min(1, (W * 0.82) / (c.bw * 1.4)); }
-  else if (FISH_SPECIES[type]) {
-    c = new FinFish(type, cx, cy);
-    const ew = c.bw * (1 + c.tailLen) + 2;
-    const eh = c.bh * (1 + c.dorsal + c.ventral) + 2;
-    c.scale = Math.min(1, (W * 0.86) / ew, (H * 0.86) / eh);
-  }
+  if (type === 'koi') { c = new Koi(cx, cy); }
+  else if (FISH_SPECIES[type]) { c = new FinFish(type, cx, cy); }
   else if (type === 'shrimp') { c = new Shrimp(cx, cy); }
   else if (type === 'snail') { c = new Snail(cx, cy + 3, cy + 3); }
   else if (type === 'crab') { c = new Crab(cx, cy + 4, cy + 4); }
   else if (type === 'plant') { c = new Plant(cx, H - 1); c.height = 0.82; }
   c.dir = 1; c.animT = 0;
+  if (c.isFish) {
+    const ew = c.bw * (1 + c.tailLen) + 2;
+    const eh = c.bh * (1 + c.dorsal + c.ventral) + 3;
+    c.scale = Math.min(1, (W * 0.9) / ew, (H * 0.9) / eh);
+  }
   if (type === 'plant') c.draw(ctx, { H });
   else c.draw(ctx);
   return cvs;

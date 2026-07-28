@@ -1,22 +1,21 @@
 // fish.js — shared Fish base (swim + bubbles + pointer curiosity) plus a
-// config-driven FinFish used for every non-koi species. Koi (koi.js) also
-// extends Fish so all fish share the same behavior and can be curious.
+// config-driven FinFish for every non-koi species. Sprites are detailed
+// pixel art: a shaded body silhouette with baked dorsal/anal fins and an
+// eye, wrapped in a 1px dark outline, plus a separate outlined tail that
+// flaps. Koi (koi.js) also extends Fish and uses the same pipeline.
+
+const OUTLINE = '#141b26';
 
 class Fish extends Creature {
   constructor(x, y) {
     super(x, y);
     this.isFish = true;
-    this.curious = 0;          // seconds of remaining curiosity
+    this.curious = 0;
     this.bubbleT = rand(2, 7);
-    // sensible fin defaults; species/koi override
-    this.tailLen = 0.3; this.tailH = 0.5;
-    this.dorsal = 0; this.ventral = 0;
-    this.finColor = 'rgba(255,255,255,0.35)';
-    this.tailColor = null;
+    this.tailLen = 0.35; this.dorsal = 0.2; this.ventral = 0.15;
   }
 
   steer(dt, tank) {
-    // Occasionally follow the pointer, but only if it's swimmable water.
     if (this.curious > 0) {
       this.curious -= dt;
       const p = tank.pointer;
@@ -41,50 +40,22 @@ class Fish extends Creature {
     }
   }
 
-  // Generic fish rendering: wagging tail, dorsal/ventral fins, cached body.
   draw(ctx) {
     const bw = this.bw, bh = this.bh;
     ctx.save();
     ctx.translate(this.x, this.y);
     ctx.scale(this.dir * this.scale, this.scale);
 
-    const wag = Math.sin(this.animT * 7) * (bh * 0.5);
-    const tx = -bw / 2;
-    const tl = bw * this.tailLen, th = bh * this.tailH;
+    // flapping tail behind the body — vertical squash keeps pixels crisp
+    const tc = this.tailCvs;
+    const wag = 0.82 + 0.18 * Math.sin(this.animT * 7);
+    const th = tc.height * wag;
+    const swish = Math.sin(this.animT * 7) * (bh * 0.06);
+    ctx.drawImage(tc, -bw / 2 - tc.width + 1, -th / 2 + swish, tc.width, th);
 
-    // tail
-    ctx.fillStyle = this.tailColor || this.finColor;
-    ctx.beginPath();
-    ctx.moveTo(tx + 1, 0);
-    ctx.lineTo(tx - tl, -th + wag);
-    ctx.lineTo(tx - tl, th + wag);
-    ctx.closePath();
-    ctx.fill();
-
-    // dorsal fin (top)
-    if (this.dorsal > 0) {
-      const dh = bh * this.dorsal;
-      ctx.fillStyle = this.finColor;
-      ctx.beginPath();
-      ctx.moveTo(-bw * 0.22, -bh * 0.45);
-      ctx.lineTo(bw * 0.04, -bh * 0.45 - dh);
-      ctx.lineTo(bw * 0.22, -bh * 0.45);
-      ctx.closePath();
-      ctx.fill();
-    }
-    // ventral fin (bottom)
-    if (this.ventral > 0) {
-      const vh = bh * this.ventral;
-      ctx.fillStyle = this.finColor;
-      ctx.beginPath();
-      ctx.moveTo(-bw * 0.22, bh * 0.45);
-      ctx.lineTo(bw * 0.04, bh * 0.45 + vh);
-      ctx.lineTo(bw * 0.22, bh * 0.45);
-      ctx.closePath();
-      ctx.fill();
-    }
-
-    ctx.drawImage(this.body, -bw / 2, -bh / 2);
+    // body (centered)
+    const bc = this.bodyCvs;
+    ctx.drawImage(bc, -bc.width / 2, -bc.height / 2);
     ctx.restore();
 
     if (this.selected) {
@@ -93,85 +64,171 @@ class Fish extends Creature {
       ctx.globalAlpha = 0.6 + pulse * 0.4;
       ctx.lineWidth = 1;
       ctx.beginPath();
-      ctx.ellipse(this.x, this.y, bw * 0.7 + pulse * 2, bh * 0.9 + pulse * 2, 0, 0, Math.PI * 2);
+      ctx.ellipse(this.x, this.y, bw * 0.75 + pulse * 2, bh * 0.95 + pulse * 2, 0, 0, Math.PI * 2);
       ctx.stroke();
       ctx.globalAlpha = 1;
     }
   }
 }
 
-// Paint a fish body (ellipse silhouette + pattern) once onto an offscreen
-// canvas. Crisp 1px cells, same technique as the koi.
-function buildFishBody(cfg) {
-  const { bw, bh, base, accent, pattern } = cfg;
-  const cvs = document.createElement('canvas');
-  cvs.width = bw; cvs.height = bh;
-  const g = cvs.getContext('2d');
-  const midY = (bh - 1) / 2;
-  const half = bw / 2;
+// --- sprite painting helpers ---
+
+// Wrap every opaque region in a 1px outline (read once so it never chains).
+function addOutline(cvs, g, color) {
+  const w = cvs.width, h = cvs.height;
+  const d = g.getImageData(0, 0, w, h).data;
+  const on = (x, y) => x >= 0 && y >= 0 && x < w && y < h && d[(y * w + x) * 4 + 3] > 0;
+  g.fillStyle = color;
+  for (let y = 0; y < h; y++) {
+    for (let x = 0; x < w; x++) {
+      if (d[(y * w + x) * 4 + 3] === 0 &&
+          (on(x - 1, y) || on(x + 1, y) || on(x, y - 1) || on(x, y + 1))) {
+        g.fillRect(x, y, 1, 1);
+      }
+    }
+  }
+}
+
+// Local body color from the species pattern (koi uses spot blobs).
+function patternColorAt(cfg, x, patY) {
+  const bw = cfg.bw, bh = cfg.bh, mid = (bh - 1) / 2;
+  if (cfg.spots) {
+    let c = cfg.base;
+    for (const s of cfg.spots) if (Math.hypot(x - s.cx, patY - s.cy) <= s.r) c = s.color;
+    return c;
+  }
   const stripeGap = Math.max(3, Math.round(bw / 4));
+  switch (cfg.pattern) {
+    case 'belly': return patY - mid > bh * 0.08 ? cfg.accent : cfg.base;
+    case 'stripes': return x % stripeGap < 2 ? cfg.accent : cfg.base;
+    case 'rear': return x < bw * 0.42 ? cfg.accent : cfg.base;
+    case 'spot': return Math.hypot(x - bw * 0.3, patY - mid) <= bh * 0.26 ? cfg.accent : cfg.base;
+    default: return cfg.base;
+  }
+}
+
+// Pattern color + top-light / belly-shadow volume shading.
+function shadedColor(cfg, x, yBody) {
+  let c = patternColorAt(cfg, x, yBody + (cfg.bh - 1) / 2);
+  const rel = yBody / (cfg.bh / 2);
+  if (rel < -0.45) c = shade(c, 0.16);
+  else if (rel > 0.5) c = shade(c, -0.18);
+  return c;
+}
+
+function buildDetailedFish(cfg) {
+  const bw = cfg.bw, bh = cfg.bh, half = bw / 2;
+  const topPad = Math.ceil(bh * cfg.dorsal) + 1;
+  const botPad = Math.ceil(bh * cfg.ventral) + 1;
+  const W = bw + 2, H = bh + topPad + botPad;
+  const midY = topPad + (bh - 1) / 2;
+
+  const dorsal = new Array(bw).fill(0);
+  const dS = Math.floor(bw * 0.26), dE = Math.floor(bw * 0.64);
+  for (let x = dS; x <= dE; x++) dorsal[x] = Math.sin(((x - dS) / Math.max(1, dE - dS)) * Math.PI) * (bh * cfg.dorsal);
+  const anal = new Array(bw).fill(0);
+  const aS = Math.floor(bw * 0.16), aE = Math.floor(bw * 0.46);
+  for (let x = aS; x <= aE; x++) anal[x] = Math.sin(((x - aS) / Math.max(1, aE - aS)) * Math.PI) * (bh * cfg.ventral);
+
+  const cvs = document.createElement('canvas');
+  cvs.width = W; cvs.height = H;
+  const g = cvs.getContext('2d');
 
   for (let x = 0; x < bw; x++) {
     const nx = (x - (bw - 1) / 2) / half;
     const hy = (bh / 2) * Math.sqrt(Math.max(0, 1 - nx * nx));
-    const top = Math.round(midY - hy);
-    const bot = Math.round(midY + hy);
-    for (let y = top; y <= bot; y++) {
-      let color = base;
-      switch (pattern) {
-        case 'belly': if (y - midY > hy * 0.15) color = accent; break;
-        case 'stripes': if (x % stripeGap < 2) color = accent; break;
-        case 'rear': if (x < bw * 0.42) color = accent; break;
-        case 'spot': if (Math.hypot(x - bw * 0.3, y - midY) <= bh * 0.26) color = accent; break;
-      }
+    const bodyTop = Math.round(midY - hy), bodyBot = Math.round(midY + hy);
+    const t = Math.round(midY - hy - dorsal[x]);
+    const b = Math.round(midY + hy + anal[x]);
+    for (let y = t; y <= b; y++) {
+      const color = (y < bodyTop || y > bodyBot) ? cfg.finColor : shadedColor(cfg, x, y - midY);
       g.fillStyle = color;
-      g.fillRect(x, y, 1, 1);
+      g.fillRect(x + 1, y, 1, 1);
     }
   }
-  // eye near the front (right side)
-  const ex = Math.round(bw - 3.5);
-  g.fillStyle = isLight(base) ? '#20232a' : '#f6f2e9';
-  g.fillRect(ex, Math.round(midY - 1), 1, 1);
+
+  // pectoral fin hint (a few darker pixels on the near side)
+  g.fillStyle = shade(cfg.base, -0.22);
+  const pfx = Math.round(bw * 0.56) + 1, pfy = Math.round(midY + bh * 0.16);
+  g.fillRect(pfx, pfy, 2, 1);
+  g.fillRect(pfx - 1, pfy + 1, 3, 1);
+
+  // eye near the front
+  const ex = Math.round(bw - 3.5) + 1, ey = Math.round(midY - bh * 0.2);
+  g.fillStyle = '#f6f2e9'; g.fillRect(ex, ey, 2, 2);
+  g.fillStyle = '#141b26'; g.fillRect(ex + 1, ey, 1, 1);
+
+  addOutline(cvs, g, cfg.outline || OUTLINE);
   return cvs;
+}
+
+function buildTail(cfg) {
+  const bw = cfg.bw, bh = cfg.bh;
+  const TW = Math.max(4, Math.round(bw * cfg.tailLen));
+  const maxH = bh * cfg.tailH;
+  const W = TW + 2, H = Math.ceil(maxH) + 2, midY = (H - 1) / 2;
+  const cvs = document.createElement('canvas');
+  cvs.width = W; cvs.height = H;
+  const g = cvs.getContext('2d');
+
+  for (let i = 0; i < TW; i++) {
+    const t = 1 - i / Math.max(1, TW - 1);       // 1 = outer (wide), 0 = attach
+    const spread = Math.max(1, (maxH / 2) * (0.35 + 0.65 * t));
+    for (let y = Math.round(midY - spread); y <= Math.round(midY + spread); y++) {
+      const rely = (y - midY) / spread;
+      const color = Math.abs(rely) > 0.6 ? shade(cfg.tailColor, -0.14) : cfg.tailColor;
+      g.fillStyle = color;
+      g.fillRect(i + 1, y, 1, 1);
+    }
+  }
+  addOutline(cvs, g, cfg.outline || OUTLINE);
+  return cvs;
+}
+
+function buildFishGraphics(cfg) {
+  return { body: buildDetailedFish(cfg), tail: buildTail(cfg) };
 }
 
 const FISH_SPECIES = {
   tetra: {
     label: 'Tetra', minLen: 12, maxLen: 16, bhRatio: 0.5,
     base: ['#5fc7e0', '#4fb0d8', '#6ad0c0'], accent: '#e8433f', pattern: 'rear',
-    tailLen: 0.28, tailH: 0.55, dorsal: 0.15, ventral: 0.12,
-    finColor: 'rgba(220,240,255,0.5)', tailColor: 'rgba(220,240,255,0.6)',
-    speedMin: 26, speedMax: 40,
+    tailLen: 0.3, tailH: 0.6, dorsal: 0.28, ventral: 0.22,
+    finColor: 'light', tailColor: 'light', speedMin: 26, speedMax: 40,
   },
   goldfish: {
     label: 'Goldfish', minLen: 16, maxLen: 20, bhRatio: 0.62,
     base: '#ff8a3d', accent: '#ffd23f', pattern: 'belly',
-    tailLen: 0.42, tailH: 0.95, dorsal: 0.3, ventral: 0.2,
-    finColor: 'rgba(255,150,80,0.7)', tailColor: 'base',
-    speedMin: 18, speedMax: 26,
+    tailLen: 0.45, tailH: 1.0, dorsal: 0.42, ventral: 0.28,
+    finColor: 'light', tailColor: 'base', speedMin: 18, speedMax: 26,
   },
   angelfish: {
     label: 'Angelfish', minLen: 15, maxLen: 19, bhRatio: 0.95,
     base: ['#f2f2f2', '#ffd23f', '#f0c27a'], accent: '#2b2b2b', pattern: 'stripes',
-    tailLen: 0.32, tailH: 0.7, dorsal: 0.85, ventral: 0.85,
-    finColor: 'rgba(245,245,245,0.55)', tailColor: 'rgba(245,245,245,0.55)',
-    speedMin: 15, speedMax: 23,
+    tailLen: 0.34, tailH: 0.8, dorsal: 0.9, ventral: 0.9,
+    finColor: 'light', tailColor: 'light', speedMin: 15, speedMax: 23,
   },
   betta: {
     label: 'Betta', minLen: 13, maxLen: 17, bhRatio: 0.6,
     base: ['#c0392b', '#7d3cc0', '#2670c0', '#c0398f'], accent: 'shade', pattern: 'solid',
-    tailLen: 0.6, tailH: 1.05, dorsal: 0.5, ventral: 0.5,
-    finColor: 'base', tailColor: 'base',
-    speedMin: 15, speedMax: 23,
+    tailLen: 0.62, tailH: 1.15, dorsal: 0.6, ventral: 0.6,
+    finColor: 'light', tailColor: 'base', speedMin: 15, speedMax: 23,
   },
   guppy: {
     label: 'Guppy', minLen: 10, maxLen: 14, bhRatio: 0.55,
     base: ['#ffd23f', '#ff7bd0', '#7bffb0', '#ff9e3d', '#8ad0ff'], accent: 'shade', pattern: 'spot',
-    tailLen: 0.5, tailH: 0.9, dorsal: 0.2, ventral: 0.15,
-    finColor: 'rgba(255,255,255,0.5)', tailColor: 'base',
-    speedMin: 24, speedMax: 34,
+    tailLen: 0.55, tailH: 1.0, dorsal: 0.3, ventral: 0.24,
+    finColor: 'light', tailColor: 'base', speedMin: 24, speedMax: 34,
   },
 };
+
+// resolve a color token ('base'/'light'/'dark') against the rolled base color
+function finToken(tok, base) {
+  if (tok === 'base') return base;
+  if (tok === 'light') return shade(base, 0.3);
+  if (tok === 'dark') return shade(base, -0.3);
+  return tok;
+}
 
 class FinFish extends Fish {
   constructor(species, x, y) {
@@ -181,16 +238,19 @@ class FinFish extends Fish {
     const bw = randInt(s.minLen, s.maxLen);
     const bh = Math.round(bw * s.bhRatio);
     const base = Array.isArray(s.base) ? pick(s.base) : s.base;
-    const accent = s.accent === 'shade' ? shade(base, -0.35)
+    const accent = s.accent === 'shade' ? shade(base, -0.4)
       : (Array.isArray(s.accent) ? pick(s.accent) : s.accent);
-    this.body = buildFishBody({ bw, bh, base, accent, pattern: s.pattern });
-    this.bw = bw; this.bh = bh;
-    this.baseColor = base;
+    const cfg = {
+      bw, bh, base, accent, pattern: s.pattern,
+      dorsal: s.dorsal, ventral: s.ventral,
+      finColor: finToken(s.finColor, base), tailColor: finToken(s.tailColor, base),
+      tailLen: s.tailLen, tailH: s.tailH, outline: OUTLINE,
+    };
+    const gfx = buildFishGraphics(cfg);
+    this.bodyCvs = gfx.body; this.tailCvs = gfx.tail;
+    this.bw = bw; this.bh = bh; this.baseColor = base;
     this.radius = bw * 0.45;
     this.maxSpeed = rand(s.speedMin, s.speedMax);
-    this.tailLen = s.tailLen; this.tailH = s.tailH;
-    this.dorsal = s.dorsal; this.ventral = s.ventral;
-    this.finColor = s.finColor === 'base' ? base : s.finColor;
-    this.tailColor = s.tailColor === 'base' ? base : s.tailColor;
+    this.tailLen = s.tailLen; this.dorsal = s.dorsal; this.ventral = s.ventral;
   }
 }
