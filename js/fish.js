@@ -158,10 +158,19 @@ function buildDetailedFish(cfg) {
   g.fillRect(pfx, pfy, 2, 1);
   g.fillRect(pfx - 1, pfy + 1, 3, 1);
 
-  // eye near the front
-  const ex = Math.round(bw - 3.5) + 1, ey = Math.round(midY - bh * 0.2);
-  g.fillStyle = '#f6f2e9'; g.fillRect(ex, ey, 2, 2);
-  g.fillStyle = '#141b26'; g.fillRect(ex + 1, ey, 1, 1);
+  // eye near the front with high-contrast socket & pupil so it pops on light/dark bodies
+  const ex = Math.round(bw * 0.68) + 1, ey = Math.round(midY - bh * 0.18);
+  if (bw >= 14) {
+    // 3x3 high-contrast eye for medium and large fish
+    g.fillStyle = OUTLINE; g.fillRect(ex - 1, ey - 1, 3, 3);
+    g.fillStyle = '#ffffff'; g.fillRect(ex - 1, ey - 1, 2, 2);
+    g.fillStyle = '#141b26'; g.fillRect(ex, ey - 1, 1, 1);
+  } else {
+    // 2x2 high-contrast eye for small fish
+    g.fillStyle = OUTLINE; g.fillRect(ex - 1, ey - 1, 2, 2);
+    g.fillStyle = '#ffffff'; g.fillRect(ex - 1, ey - 1, 2, 1);
+    g.fillStyle = '#141b26'; g.fillRect(ex, ey - 1, 1, 1);
+  }
 
   addOutline(cvs, g, cfg.outline || OUTLINE);
   return cvs;
