@@ -192,7 +192,38 @@ button { font-family: var(--font); }
   padding: 10px 12px calc(10px + env(safe-area-inset-bottom));
   background: var(--panel);
   border-top: 4px solid var(--edge);
+  transition: max-height 0.25s ease, opacity 0.2s ease, padding 0.25s ease, border-top-width 0.25s ease;
+  max-height: 240px;
+  overflow: hidden;
 }
+
+#tank-screen.toolbar-collapsed #toolbar {
+  max-height: 0;
+  padding-top: 0;
+  padding-bottom: 0;
+  border-top-width: 0;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.expand-btn {
+  position: absolute;
+  right: 14px;
+  bottom: 14px;
+  z-index: 20;
+  font-family: var(--font);
+  font-size: 0.55rem;
+  padding: 10px 14px;
+  color: var(--ink);
+  background: var(--panel);
+  border: 3px solid var(--edge);
+  box-shadow: 3px 3px 0 var(--edge);
+  cursor: pointer;
+  opacity: 0.85;
+  transition: transform 0.15s ease, opacity 0.15s ease;
+}
+.expand-btn:hover { opacity: 1; transform: scale(1.05); }
+.expand-btn:active { transform: translate(1px, 1px); }
 
 .tool-group { display: flex; align-items: center; gap: 8px; }
 .tool-group.grow { flex: 1 1 150px; }

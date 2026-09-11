@@ -318,8 +318,24 @@ function toggleFullscreen() {
   }
 }
 
+function toggleToolbar(collapse) {
+  const tankScreen = $('tank-screen');
+  const expandBtn = $('expand-btn');
+  if (collapse) {
+    tankScreen.classList.add('toolbar-collapsed');
+    if (expandBtn) expandBtn.classList.remove('hidden');
+  } else {
+    tankScreen.classList.remove('toolbar-collapsed');
+    if (expandBtn) expandBtn.classList.add('hidden');
+  }
+  setTimeout(() => {
+    if (tank) { tank.resize(); updateCap(); }
+  }, 260);
+}
+
 function startGame() {
   requestFullscreen();
+  toggleToolbar(false);
   closeLibrary();
   transition('title-screen', 'tank-screen', () => {
     tank.clear();
@@ -361,8 +377,13 @@ function init() {
   $('delete-btn').disabled = true;
   const fsBtn = $('fullscreen-btn');
   if (fsBtn) fsBtn.addEventListener('click', toggleFullscreen);
+  const collapseBtn = $('collapse-btn');
+  if (collapseBtn) collapseBtn.addEventListener('click', () => toggleToolbar(true));
+  const expandBtn = $('expand-btn');
+  if (expandBtn) expandBtn.addEventListener('click', () => toggleToolbar(false));
   $('menu-btn').addEventListener('click', () => {
     closeLibrary();
+    toggleToolbar(false);
     exitFullscreen();
     transition('tank-screen', 'title-screen', () => tank.stop());
   });
