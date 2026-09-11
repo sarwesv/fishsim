@@ -264,7 +264,35 @@ function transition(fromId, toId, onMid) {
   });
 }
 
+function requestFullscreen() {
+  const elem = document.documentElement;
+  if (!document.fullscreenElement && !document.webkitFullscreenElement && !document.mozFullScreenElement && !document.msFullscreenElement) {
+    if (elem.requestFullscreen) {
+      elem.requestFullscreen().catch(() => {});
+    } else if (elem.webkitRequestFullscreen) {
+      elem.webkitRequestFullscreen();
+    } else if (elem.msRequestFullscreen) {
+      elem.msRequestFullscreen();
+    }
+  }
+}
+
+function toggleFullscreen() {
+  if (!document.fullscreenElement && !document.webkitFullscreenElement && !document.mozFullScreenElement && !document.msFullscreenElement) {
+    requestFullscreen();
+  } else {
+    if (document.exitFullscreen) {
+      document.exitFullscreen().catch(() => {});
+    } else if (document.webkitExitFullscreen) {
+      document.webkitExitFullscreen();
+    } else if (document.msExitFullscreen) {
+      document.msExitFullscreen();
+    }
+  }
+}
+
 function startGame() {
+  requestFullscreen();
   closeLibrary();
   transition('title-screen', 'tank-screen', () => {
     tank.clear();
@@ -304,6 +332,8 @@ function init() {
   $('surprise-btn2').addEventListener('click', surpriseTank);
   $('delete-btn').addEventListener('click', () => { tank.deleteSelected(); });
   $('delete-btn').disabled = true;
+  const fsBtn = $('fullscreen-btn');
+  if (fsBtn) fsBtn.addEventListener('click', toggleFullscreen);
   $('menu-btn').addEventListener('click', () => {
     closeLibrary();
     transition('tank-screen', 'title-screen', () => tank.stop());
