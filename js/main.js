@@ -14,6 +14,22 @@ const SALT_DEFAULTS = { clownfish: 3, blue_tang: 1, damsel: 2, shrimp: 1, snail:
 function $(id) { return document.getElementById(id); }
 function labelOf(type) { return (SPECIES_BY_TYPE[type] || {}).label || type; }
 
+// Universal touch/pointer tap listener helper for smart fridges & touchscreens
+function addTapListener(el, callback) {
+  if (!el) return;
+  let handled = false;
+  const trigger = (e) => {
+    if (handled) return;
+    handled = true;
+    setTimeout(() => { handled = false; }, 300);
+    callback(e);
+  };
+  el.addEventListener('pointerdown', (e) => {
+    if (e.isPrimary !== false) trigger(e);
+  });
+  el.addEventListener('click', trigger);
+}
+
 // ---------- pixel sprite icons ----------
 function makeSpriteIcon(type) {
   const W = 40, H = 28;
@@ -361,27 +377,31 @@ function init() {
 
   // water selector
   $('water-select').querySelectorAll('button').forEach((b) => {
-    b.addEventListener('click', () => setTitleWater(b.dataset.water));
+    addTapListener(b, () => setTitleWater(b.dataset.water));
   });
   setTitleWater('fresh');
 
   buildGravelSwatches($('title-gravel'), (col) => { tank.gravelColor = col; });
   buildGravelSwatches($('tank-gravel'), (col) => { tank.gravelColor = col; });
 
-  $('browse-btn').addEventListener('click', () => openLibrary('title'));
-  $('surprise-btn').addEventListener('click', surpriseTitle);
-  $('start-btn').addEventListener('click', startGame);
-  $('add-btn').addEventListener('click', () => openLibrary('tank'));
-  $('surprise-btn2').addEventListener('click', surpriseTank);
-  $('delete-btn').addEventListener('click', () => { tank.deleteSelected(); });
+  addTapListener($('browse-btn'), () => openLibrary('title'));
+  addTapListener($('surprise-btn'), surpriseTitle);
+  addTapListener($('start-btn'), startGame);
+  addTapListener($('add-btn'), () => openLibrary('tank'));
+  addTapListener($('surprise-btn2'), surpriseTank);
+  addTapListener($('delete-btn'), () => { tank.deleteSelected(); });
   $('delete-btn').disabled = true;
+
   const fsBtn = $('fullscreen-btn');
-  if (fsBtn) fsBtn.addEventListener('click', toggleFullscreen);
+  addTapListener(fsBtn, toggleFullscreen);
+
   const collapseBtn = $('collapse-btn');
-  if (collapseBtn) collapseBtn.addEventListener('click', () => toggleToolbar(true));
+  addTapListener(collapseBtn, () => toggleToolbar(true));
+
   const expandBtn = $('expand-btn');
-  if (expandBtn) expandBtn.addEventListener('click', () => toggleToolbar(false));
-  $('menu-btn').addEventListener('click', () => {
+  addTapListener(expandBtn, () => toggleToolbar(false));
+
+  addTapListener($('menu-btn'), () => {
     closeLibrary();
     toggleToolbar(false);
     exitFullscreen();
@@ -389,16 +409,16 @@ function init() {
   });
 
   // library controls
-  $('lib-close').addEventListener('click', closeLibrary);
+  addTapListener($('lib-close'), closeLibrary);
   $('lib-search').addEventListener('input', renderLibrary);
   $('lib-tabs').querySelectorAll('button').forEach((b) => {
-    b.addEventListener('click', () => {
+    addTapListener(b, () => {
       if (libLocked()) return;
       if (libContext === 'title') setTitleWater(b.dataset.water);
       else { libWater = b.dataset.water; renderLibrary(); }
     });
   });
-  $('library').addEventListener('click', (e) => { if (e.target.id === 'library') closeLibrary(); });
+  addTapListener($('library'), (e) => { if (e.target.id === 'library') closeLibrary(); });
 
   animateTitleIn();
 

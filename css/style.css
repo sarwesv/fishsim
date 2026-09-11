@@ -210,16 +210,19 @@ button { font-family: var(--font); }
   position: absolute;
   right: 14px;
   bottom: 14px;
-  z-index: 20;
+  z-index: 100 !important;
   font-family: var(--font);
-  font-size: 0.55rem;
-  padding: 10px 14px;
+  font-size: 0.6rem;
+  padding: 12px 18px;
   color: var(--ink);
   background: var(--panel);
   border: 3px solid var(--edge);
-  box-shadow: 3px 3px 0 var(--edge);
+  box-shadow: 4px 4px 0 var(--edge);
   cursor: pointer;
-  opacity: 0.85;
+  opacity: 0.95;
+  touch-action: manipulation;
+  pointer-events: auto !important;
+  -webkit-tap-highlight-color: rgba(255, 255, 255, 0.3);
   transition: transform 0.15s ease, opacity 0.15s ease;
 }
 .expand-btn:hover { opacity: 1; transform: scale(1.05); }
